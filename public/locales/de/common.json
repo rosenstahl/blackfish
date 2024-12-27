@@ -1,0 +1,61 @@
+{
+  "nav": {
+    "home": "Startseite",
+    "features": "Features",
+    "pricing": "Preise",
+    "about": "Über uns",
+    "contact": "Kontakt"
+  },
+  "hero": {
+    "title": "Innovative Digitale Lösungen",
+    "subtitle": "Wir gestalten die digitale Zukunft",
+    "cta": "Jetzt starten"
+  },
+  "features": {
+    "title": "Unsere Features",
+    "performance": {
+      "title": "Hohe Performance",
+      "description": "Optimierte Leistung für beste Nutzererfahrung"
+    },
+    "security": {
+      "title": "Maximale Sicherheit",
+      "description": "Modernste Sicherheitsstandards für Ihre Daten"
+    },
+    "scalability": {
+      "title": "Skalierbarkeit",
+      "description": "Wachsen Sie flexibel mit Ihren Anforderungen"
+    }
+  },
+  "contact": {
+    "title": "Kontaktieren Sie uns",
+    "form": {
+      "name": "Name",
+      "email": "E-Mail",
+      "message": "Nachricht",
+      "submit": "Absenden",
+      "success": "Vielen Dank für Ihre Nachricht!",
+      "error": "Ein Fehler ist aufgetreten. Bitte versuchen Sie es später erneut."
+    }
+  },
+  "footer": {
+    "copyright": "© 2024 BLACKFISH.DIGITAL. Alle Rechte vorbehalten.",
+    "legal": {
+      "privacy": "Datenschutz",
+      "terms": "AGB",
+      "imprint": "Impressum"
+    }
+  },
+  "errors": {
+    "required": "Dieses Feld ist erforderlich",
+    "invalid_email": "Bitte geben Sie eine gültige E-Mail-Adresse ein",
+    "min_length": "Mindestens {{count}} Zeichen erforderlich",
+    "max_length": "Maximal {{count}} Zeichen erlaubt"
+  },
+  "accessibility": {
+    "skip_to_content": "Zum Hauptinhalt springen",
+    "menu_open": "Menü öffnen",
+    "menu_close": "Menü schließen",
+    "theme_toggle": "Farbschema umschalten",
+    "language_switch": "Sprache ändern"
+  }
+}
