@@ -2,7 +2,7 @@
 
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect } from 'react';
-import { Settings, X, Shield, ChartBar, Target } from 'lucide-react';
+import { Settings, X, Shield } from 'lucide-react';
 import { useCookieConsent } from '@/app/context/CookieConsentContext';
 import { Analytics } from '@/app/lib/analytics';
 
@@ -33,7 +33,7 @@ export default function CookieBanner() {
   };
 
   return (
-    <AnimatePresence>
+    <AnimatePresence mode="wait">
       {isVisible && (
         <motion.div
           initial={{ y: 100, opacity: 0 }}
