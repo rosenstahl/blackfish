@@ -1,0 +1,29 @@
+# syntax=docker/dockerfile:1.4
+FROM node:18-alpine
+
+# Install Chrome for Playwright
+RUN apk add --no-cache \
+    chromium \
+    nss \
+    freetype \
+    freetype-dev \
+    harfbuzz \
+    ca-certificates \
+    ttf-freefont \
+    nodejs \
+    yarn
+
+# Install dependencies
+WORKDIR /app
+ENV CHROME_BIN=/usr/bin/chromium-browser \
+    CHROME_PATH=/usr/lib/chromium/
+
+# Copy package files
+COPY package*.json ./
+RUN npm ci
+
+# Copy source
+COPY . .
+
+# Run tests
+CMD ["npm", "run", "test:ci"]
