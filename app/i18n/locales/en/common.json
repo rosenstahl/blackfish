@@ -1,0 +1,16 @@
+{
+  "nav": {
+    "services": "Services",
+    "references": "References",
+    "packages": "Packages",
+    "contact": "Contact"
+  },
+  "cta": {
+    "start": "Get Started",
+    "contact": "Contact Us"
+  },
+  "services": {
+    "title": "Our Services",
+    "subtitle": "From concept to implementation - we accompany you on the path to digital success"
+  }
+}

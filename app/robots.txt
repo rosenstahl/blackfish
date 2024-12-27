@@ -1,0 +1,58 @@
+# Global rules
+User-agent: *
+Allow: /
+Allow: /sitemap.xml
+
+# Sitemap
+Sitemap: https://blackfish.digital/sitemap.xml
+
+# Disallow administrative and private areas
+Disallow: /api/
+Disallow: /admin/
+Disallow: /private/
+Disallow: /*?*
+Disallow: /*/private/
+Disallow: /*.json$
+Disallow: /*.js$
+Disallow: /*.css$
+
+# Media files
+Allow: /*.jpg$
+Allow: /*.jpeg$
+Allow: /*.gif$
+Allow: /*.png$
+Allow: /*.webp$
+Allow: /*.svg$
+
+# Specific rules for major bots
+User-agent: Googlebot
+Allow: /
+Allow: /*.js$
+Allow: /*.css$
+
+User-agent: Googlebot-Image
+Allow: /*.jpg$
+Allow: /*.jpeg$
+Allow: /*.gif$
+Allow: /*.png$
+Allow: /*.webp$
+Allow: /*.svg$
+
+User-agent: Bingbot
+Allow: /
+Crawl-delay: 1
+
+User-agent: DuckDuckBot
+Allow: /
+Crawl-delay: 1
+
+# Block specific bots
+User-agent: *bot
+Disallow: /wp-admin/
+Disallow: /wp-includes/
+
+# Rate limiting
+Crawl-delay: 1
+
+# Host
+Host: https://blackfish.digital
