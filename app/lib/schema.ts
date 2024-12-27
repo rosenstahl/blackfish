@@ -1,35 +1,142 @@
-// app/lib/schema.ts
+type WebPage = {
+  '@context': 'https://schema.org';
+  '@type': 'WebPage';
+  name: string;
+  description: string;
+  url: string;
+  isPartOf: {
+    '@type': 'WebSite';
+    name: string;
+    url: string;
+  };
+  breadcrumb?: {
+    '@type': 'BreadcrumbList';
+    itemListElement: BreadcrumbItem[];
+  };
+  mainEntity?: any;
+};
 
-export const getOrganizationSchema = () => {
+export function generateWebPageSchema({
+  title,
+  description,
+  path,
+  breadcrumbs,
+  mainEntity
+}: {
+  title: string;
+  description: string;
+  path: string;
+  breadcrumbs?: { name: string; path: string }[];
+  mainEntity?: any;
+}): WebPage {
+  const schema: WebPage = {
+    '@context': 'https://schema.org',
+    '@type': 'WebPage',
+    name: title,
+    description: description,
+    url: `https://blackfish.digital${path}`,
+    isPartOf: {
+      '@type': 'WebSite',
+      name: 'BLACKFISH.DIGITAL',
+      url: 'https://blackfish.digital'
+    }
+  };
+
+  if (breadcrumbs) {
+    schema.breadcrumb = generateBreadcrumbSchema(breadcrumbs);
+  }
+
+  if (mainEntity) {
+    schema.mainEntity = mainEntity;
+  }
+
+  return schema;
+}
+
+type FAQPage = {
+  '@context': 'https://schema.org';
+  '@type': 'FAQPage';
+  mainEntity: Array<{
+    '@type': 'Question';
+    name: string;
+    acceptedAnswer: {
+      '@type': 'Answer';
+      text: string;
+    };
+  }>;
+};
+
+export function generateFAQSchema(faqs: Array<{ question: string; answer: string }>): FAQPage {
   return {
     '@context': 'https://schema.org',
-    '@type': 'Organization',
-    name: 'BLACKFISH.DIGITAL',
-    url: 'https://blackfish.digital',
+    '@type': 'FAQPage',
+    mainEntity: faqs.map(faq => ({
+      '@type': 'Question',
+      name: faq.question,
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: faq.answer
+      }
+    }))
+  };
+}
+
+type BlogPosting = {
+  '@context': 'https://schema.org';
+  '@type': 'BlogPosting';
+  headline: string;
+  description: string;
+  image: string;
+  author: {
+    '@type': 'Person';
+    name: string;
+  };
+  publisher: {
+    '@type': 'Organization';
+    name: string;
     logo: {
-      '@type': 'ImageObject',
-      url: 'https://blackfish.digital/logo.png',
-      width: '180',
-      height: '180'
+      '@type': 'ImageObject';
+      url: string;
+    };
+  };
+  datePublished: string;
+  dateModified: string;
+};
+
+export function generateBlogPostSchema({
+  title,
+  description,
+  image,
+  author,
+  publishDate,
+  modifyDate
+}: {
+  title: string;
+  description: string;
+  image: string;
+  author: string;
+  publishDate: string;
+  modifyDate: string;
+}): BlogPosting {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'BlogPosting',
+    headline: title,
+    description: description,
+    image: `https://blackfish.digital${image}`,
+    author: {
+      '@type': 'Person',
+      name: author
     },
-    contactPoint: {
-      '@type': 'ContactPoint',
-      telephone: '+49-123-456789',
-      contactType: 'customer service',
-      areaServed: 'DE',
-      availableLanguage: ['German', 'English']
+    publisher: {
+      '@type': 'Organization',
+      name: 'BLACKFISH.DIGITAL',
+      logo: {
+        '@type': 'ImageObject',
+        url: 'https://blackfish.digital/logo.svg'
+      }
     },
-    sameAs: [
-      'https://www.linkedin.com/company/blackfish-digital',
-      'https://twitter.com/blackfishdigital',
-      'https://www.instagram.com/blackfishdigital'
-    ],
-    address: {
-      '@type': 'PostalAddress',
-      streetAddress: 'Musterstraße 123',
-      addressLocality: 'Musterstadt',
-      postalCode: '12345',
-      addressCountry: 'DE'
-    }
-  }
+    datePublished: publishDate,
+    dateModified: modifyDate
+  };
 }
