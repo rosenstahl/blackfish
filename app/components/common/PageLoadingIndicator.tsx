@@ -1,17 +1,20 @@
-import { useEffect, memo, useCallback } from 'react'
+import { useEffect, useCallback, memo } from 'react'
 import { motion, useAnimation, useReducedMotion } from 'framer-motion'
 import { Analytics } from '@/app/lib/analytics'
 import { cn } from '@/app/lib/utils'
-import { useLoadingProgress } from '@/hooks/useLoadingProgress'
+import { useProgressRing } from '@/hooks/useProgressRing'
 
-interface LoadingCircleProps {
-  prefersReducedMotion: boolean;
-  progress: number;
-  size?: number;
+interface PageLoadingIndicatorProps {
+  message?: string;
+  duration?: number;
+  onLoadingComplete?: () => void;
+  showProgressRing?: boolean;
 }
 
-// Memoized Loading Circle Component
-const LoadingCircle = memo(({ prefersReducedMotion, progress, size = 48 }: LoadingCircleProps) => (
+const DEFAULT_DURATION = 2;
+const LOADING_TIMEOUT = 10000; // 10 seconds timeout
+
+const LoadingRing = memo(({ progress }: { progress: number }) => (
   <svg
     className="absolute inset-0 w-16 h-16"
     viewBox="0 0 100 100"
@@ -22,7 +25,7 @@ const LoadingCircle = memo(({ prefersReducedMotion, progress, size = 48 }: Loadi
       strokeWidth="4"
       stroke="currentColor"
       fill="transparent"
-      r={size}
+      r="48"
       cx="50"
       cy="50"
     />
@@ -31,134 +34,117 @@ const LoadingCircle = memo(({ prefersReducedMotion, progress, size = 48 }: Loadi
       strokeWidth="4"
       stroke="currentColor"
       fill="transparent"
-      r={size}
+      r="48"
       cx="50"
       cy="50"
       style={{
-        strokeDasharray: 2 * Math.PI * size,
-        strokeDashoffset: 2 * Math.PI * size * (1 - progress / 100),
-        rotate: "-90deg",
-        transformOrigin: "50% 50%"
-      }}
-      animate={!prefersReducedMotion ? {
-        strokeDashoffset: [2 * Math.PI * size, 0]
-      } : {}}
-      transition={{
-        duration: 2,
-        ease: "easeInOut",
-        repeat: Infinity
+        pathLength: progress,
+        rotate: '-90deg',
+        transformOrigin: '50% 50%'
       }}
     />
   </svg>
 ));
 
-LoadingCircle.displayName = 'LoadingCircle';
-
-// Loading Message Component
-const LoadingMessage = memo(({ message, prefersReducedMotion }: { message: string; prefersReducedMotion: boolean }) => (
-  <motion.p
-    animate={!prefersReducedMotion ? {
-      opacity: [0.5, 1, 0.5]
-    } : {}}
-    transition={{
-      duration: 2,
-      repeat: Infinity,
-      ease: "easeInOut"
-    }}
-    className={cn(
-      "absolute -bottom-8 left-1/2 -translate-x-1/2",
-      "text-white font-medium"
-    )}
-    aria-live="polite"
-  >
-    {message}
-  </motion.p>
-));
-
-LoadingMessage.displayName = 'LoadingMessage';
-
-// Main Component Props
-interface PageLoadingIndicatorProps {
-  message?: string;
-  duration?: number;
-  onLoadingComplete?: () => void;
-  initialProgress?: number;
-}
+LoadingRing.displayName = 'LoadingRing';
 
 function PageLoadingIndicator({
   message = 'Loading...',
-  duration = 2,
+  duration = DEFAULT_DURATION,
   onLoadingComplete,
-  initialProgress = 0
+  showProgressRing = true
 }: PageLoadingIndicatorProps) {
   const prefersReducedMotion = useReducedMotion()
-  const { progress, setProgress } = useLoadingProgress(initialProgress)
   const circleControls = useAnimation()
+  const textControls = useAnimation()
+  
+  const { progress, startProgress, stopProgress } = useProgressRing({
+    duration: duration * 1000
+  })
 
-  // Track loading events
-  const trackLoadingEvent = useCallback((eventType: string, value?: number) => {
+  const handleLoadingComplete = useCallback(() => {
     Analytics.event({
-      action: `loading_${eventType}`,
+      action: 'loading_complete',
       category: 'UI',
-      label: message,
-      value: value || duration
+      value: duration
     })
-  }, [duration, message])
+
+    if (onLoadingComplete) {
+      onLoadingComplete()
+    }
+  }, [duration, onLoadingComplete])
 
   useEffect(() => {
-    let mounted = true
-    let progressInterval: NodeJS.Timeout
+    let timeoutId: NodeJS.Timeout
+    let animationStartTime = Date.now()
 
-    const simulateProgress = () => {
-      progressInterval = setInterval(() => {
-        if (mounted) {
-          setProgress((prev) => {
-            if (prev >= 100) {
-              clearInterval(progressInterval)
-              trackLoadingEvent('complete', prev)
-              onLoadingComplete?.()
-              return 100
+    // Track loading start
+    Analytics.event({
+      action: 'loading_start',
+      category: 'UI',
+      value: duration
+    })
+
+    // Start animations
+    const startAnimations = async () => {
+      if (prefersReducedMotion) {
+        // Simplified animations for users who prefer reduced motion
+        await Promise.all([
+          circleControls.start({ opacity: 0.8 }),
+          textControls.start({ opacity: 0.8 })
+        ])
+      } else {
+        // Full animations
+        await Promise.all([
+          circleControls.start({
+            scale: [1, 1.1, 1],
+            rotate: 360,
+            transition: {
+              duration: duration,
+              repeat: Infinity,
+              ease: "easeInOut",
+              times: [0, 0.5, 1]
             }
-            return Math.min(prev + Math.random() * 10, 100)
+          }),
+          textControls.start({
+            opacity: [0.6, 1, 0.6],
+            transition: {
+              duration: 1.5,
+              repeat: Infinity,
+              ease: "easeInOut"
+            }
           })
-        }
-      }, duration * 100)
+        ])
+      }
     }
 
     // Start animations and progress
-    const startLoading = async () => {
-      trackLoadingEvent('start')
-      
-      if (!prefersReducedMotion) {
-        await circleControls.start({
-          scale: [1, 1.2, 1],
-          rotate: [0, 180, 360],
-          transition: {
-            duration,
-            repeat: Infinity,
-            ease: "easeInOut"
-          }
-        })
-      }
+    startAnimations()
+    if (showProgressRing) {
+      startProgress()
     }
 
-    startLoading()
-    simulateProgress()
+    // Set up loading timeout
+    timeoutId = setTimeout(() => {
+      const loadingTime = Date.now() - animationStartTime
+      
+      Analytics.event({
+        action: 'loading_timeout',
+        category: 'Error',
+        value: loadingTime,
+        label: `Timeout after ${loadingTime}ms`
+      })
 
-    // Timeout for long loading
-    const loadingTimeout = setTimeout(() => {
-      if (mounted && progress < 100) {
-        trackLoadingEvent('timeout')
-      }
-    }, duration * 1000 * 3)
+      handleLoadingComplete()
+    }, LOADING_TIMEOUT)
 
     return () => {
-      mounted = false
-      clearInterval(progressInterval)
-      clearTimeout(loadingTimeout)
+      clearTimeout(timeoutId)
       circleControls.stop()
+      textControls.stop()
+      stopProgress()
     }
-  }, [circleControls, duration, onLoadingComplete, prefersReducedMotion, progress, setProgress, trackLoadingEvent])
+  }, [circleControls, textControls, duration, prefersReducedMotion, handleLoadingComplete, showProgressRing, startProgress, stopProgress])
 
   return (
     <div
@@ -167,37 +153,43 @@ function PageLoadingIndicator({
       className={cn(
         "fixed inset-0 z-50",
         "flex items-center justify-center",
-        "bg-[#1a1f36]/90 backdrop-blur-sm",
-        "transition-opacity duration-300"
+        "bg-gray-900/90 backdrop-blur-sm",
+        "transition-opacity duration-200"
       )}
-      data-testid="page-loading-indicator"
     >
-      <div className="relative">
+      <div className="relative flex flex-col items-center">
         {/* Loading Animation */}
-        <motion.div
-          animate={circleControls}
-          className={cn(
-            "w-16 h-16",
-            "border-2 border-blue-500 rounded-full",
-            "transition-all duration-300"
+        <div className="relative w-16 h-16">
+          {/* Spinning Circle */}
+          <motion.div
+            animate={circleControls}
+            className={cn(
+              "absolute inset-0",
+              "border-2 border-blue-500 rounded-full"
+            )}
+          />
+
+          {/* Progress Ring */}
+          {showProgressRing && (
+            <LoadingRing progress={progress} />
           )}
-        />
-        
-        {/* Progress Circle */}
-        <LoadingCircle 
-          prefersReducedMotion={!!prefersReducedMotion}
-          progress={progress}
-        />
+        </div>
 
-        {/* Loading Message */}
-        <LoadingMessage 
-          message={message} 
-          prefersReducedMotion={!!prefersReducedMotion}
-        />
+        {/* Loading Text */}
+        <motion.p
+          animate={textControls}
+          className={cn(
+            "mt-4 text-white font-medium",
+            "text-sm sm:text-base"
+          )}
+        >
+          {message}
+        </motion.p>
 
-        {/* Screen Reader Only Text */}
+        {/* Screen Reader Text */}
         <span className="sr-only">
-          {message} {progress}% complete
+          Seite wird geladen. Bitte warten.
+          {showProgressRing && `Fortschritt: ${Math.round(progress * 100)}%`}
         </span>
       </div>
     </div>
