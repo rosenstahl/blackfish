@@ -1,4 +1,13 @@
 import { Analytics } from './analytics';
+import * as webVitals from 'web-vitals';
+
+type WebVitalMetric = {
+  id: string;
+  name: string;
+  value: number;
+  rating?: 'good' | 'needs-improvement' | 'poor';
+  navigationType?: string;
+};
 
 interface PerformanceMetric {
   name: string;
@@ -19,6 +28,7 @@ export class PerformanceMonitor {
       this.setupObservers();
       this.trackInitialLoad();
       this.trackResourceLoading();
+      this.trackWebVitals();
     }
   }
 
@@ -32,7 +42,9 @@ export class PerformanceMonitor {
           value: resource.duration,
           category: 'Resource',
           url: resource.name,
-          type: resource.initiatorType
+          type: resource.initiatorType,
+          size: resource.transferSize,
+          protocol: resource.nextHopProtocol
         });
       }
     });
@@ -43,7 +55,8 @@ export class PerformanceMonitor {
         name: 'long_task',
         value: entry.duration,
         category: 'Performance',
-        startTime: entry.startTime
+        startTime: entry.startTime,
+        attribution: (entry as any).attribution
       });
     });
 
@@ -54,7 +67,12 @@ export class PerformanceMonitor {
           name: 'layout_shift',
           value: entry.value,
           category: 'Layout',
-          sources: entry.sources
+          sources: entry.sources,
+          elements: entry.sources?.map((source: any) => ({
+            node: source.node?.tagName?.toLowerCase(),
+            previousRect: source.previousRect,
+            currentRect: source.currentRect
+          }))
         });
       }
     });
@@ -64,7 +82,8 @@ export class PerformanceMonitor {
       this.trackMetric({
         name: entry.name,
         value: entry.startTime,
-        category: 'Paint'
+        category: 'Paint',
+        type: entry.entryType
       });
     });
 
@@ -75,7 +94,8 @@ export class PerformanceMonitor {
         value: entry.startTime,
         category: 'Element',
         element: entry.identifier || entry.id,
-        renderTime: entry.renderTime
+        renderTime: entry.renderTime,
+        loadTime: entry.loadTime
       });
     });
 
@@ -85,8 +105,21 @@ export class PerformanceMonitor {
         name: 'largest_contentful_paint',
         value: entry.startTime,
         category: 'Paint',
-        element: entry.element?.tagName,
-        size: entry.size
+        element: entry.element?.tagName?.toLowerCase(),
+        size: entry.size,
+        url: entry.url
+      });
+    });
+
+    // First Input Delay
+    this.createObserver('first-input', (entry: any) => {
+      this.trackMetric({
+        name: 'first_input_delay',
+        value: entry.processingStart - entry.startTime,
+        category: 'Interaction',
+        startTime: entry.startTime,
+        processingStart: entry.processingStart,
+        processingEnd: entry.processingEnd
       });
     });
   }
@@ -120,7 +153,12 @@ export class PerformanceMonitor {
             domInteractive: timing.domInteractive,
             domContentLoaded: timing.domContentLoadedEventEnd,
             firstByte: timing.responseStart,
-            loadEvent: timing.loadEventEnd
+            loadEvent: timing.loadEventEnd,
+            redirectTime: timing.redirectEnd - timing.redirectStart,
+            dnsTime: timing.domainLookupEnd - timing.domainLookupStart,
+            tcpTime: timing.connectEnd - timing.connectStart,
+            requestTime: timing.responseEnd - timing.requestStart,
+            responseTime: timing.responseEnd - timing.responseStart
           }
         });
       }
@@ -133,24 +171,55 @@ export class PerformanceMonitor {
           value: memory.usedJSHeapSize,
           category: 'Memory',
           totalHeapSize: memory.totalJSHeapSize,
-          heapLimit: memory.jsHeapSizeLimit
+          heapLimit: memory.jsHeapSizeLimit,
+          allocation: memory.totalJSHeapSize / memory.jsHeapSizeLimit
         });
       }
     }, { once: true });
   }
+
+  private trackWebVitals() {
+    // Core Web Vitals
+    webVitals.onCLS(this.handleWebVital);
+    webVitals.onFID(this.handleWebVital);
+    webVitals.onLCP(this.handleWebVital);
+    webVitals.onTTFB(this.handleWebVital);
+    webVitals.onFCP(this.handleWebVital);
+    webVitals.onINP(this.handleWebVital);
+  }
+
+  private handleWebVital = (metric: WebVitalMetric) => {
+    this.trackMetric({
+      name: metric.name.toLowerCase(),
+      value: metric.value,
+      category: 'Web Vitals',
+      id: metric.id,
+      rating: metric.rating,
+      navigationType: metric.navigationType
+    });
+  };
 
   private trackResourceLoading() {
     const resources = performance.getEntriesByType('resource');
     const slowResources = resources.filter(r => r.duration > 1000);
 
     slowResources.forEach(resource => {
+      const resourceTiming = resource as PerformanceResourceTiming;
       this.trackMetric({
         name: 'initial_slow_resource',
-        value: resource.duration,
+        value: resourceTiming.duration,
         category: 'Resource',
-        url: resource.name,
-        type: resource.initiatorType,
-        size: (resource as PerformanceResourceTiming).transferSize
+        url: resourceTiming.name,
+        type: resourceTiming.initiatorType,
+        size: resourceTiming.transferSize,
+        protocol: resourceTiming.nextHopProtocol,
+        timing: {
+          redirect: resourceTiming.redirectEnd - resourceTiming.redirectStart,
+          dns: resourceTiming.domainLookupEnd - resourceTiming.domainLookupStart,
+          tcp: resourceTiming.connectEnd - resourceTiming.connectStart,
+          request: resourceTiming.responseStart - resourceTiming.requestStart,
+          response: resourceTiming.responseEnd - resourceTiming.responseStart
+        }
       });
     });
   }
@@ -169,7 +238,7 @@ export class PerformanceMonitor {
       label: metric.name,
       value: Math.round(metric.value),
       nonInteraction: true,
-      ...metric
+      metric
     });
 
     if (metric.value > 3000 || metric.category === 'Error') {
