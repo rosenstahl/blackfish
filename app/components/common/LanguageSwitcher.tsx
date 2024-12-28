@@ -22,7 +22,7 @@ interface LanguageButtonProps {
   prefersReducedMotion: boolean;
 }
 
-// Language Configuration
+// Available languages
 const languages: Language[] = [
   { 
     code: 'de', 
@@ -42,7 +42,7 @@ const languages: Language[] = [
     nativeName: 'Türkçe',
     flag: '🇹🇷'
   }
-] as const;
+]
 
 // Memoized Language Button Component
 const LanguageButton = memo(({ lang, isActive, onClick, prefersReducedMotion }: LanguageButtonProps) => (
@@ -53,7 +53,9 @@ const LanguageButton = memo(({ lang, isActive, onClick, prefersReducedMotion }: 
       "flex items-center justify-between gap-2",
       isActive
         ? "bg-blue-500/20 text-blue-400"
-        : "text-gray-300 hover:bg-gray-700/50 hover:text-white"
+        : "text-gray-300 hover:bg-gray-700/50 hover:text-white",
+      "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1",
+      "focus:ring-offset-gray-800 rounded-sm"
     )}
     whileHover={prefersReducedMotion ? {} : { x: 4 }}
     role="menuitem"
@@ -67,10 +69,12 @@ const LanguageButton = memo(({ lang, isActive, onClick, prefersReducedMotion }: 
     </div>
     {isActive && (
       <motion.div
-        className="h-2 w-2 rounded-full bg-blue-400"
         layoutId="activeLanguage"
+        className="flex items-center"
         aria-hidden="true"
-      />
+      >
+        <Check className="h-4 w-4" />
+      </motion.div>
     )}
   </motion.button>
 ));
@@ -84,36 +88,71 @@ function LanguageSwitcher() {
   const menuRef = useRef<HTMLDivElement>(null)
   const prefersReducedMotion = useReducedMotion()
 
-  // Optimized Event Handlers
+  // Custom hooks for better interaction handling
   useOnClickOutside(menuRef, () => setIsOpen(false))
   useKeyPress('Escape', () => setIsOpen(false))
 
-  // Handle Language Change
+  // Keyboard navigation within menu
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const menuItems = menuRef.current?.querySelectorAll('[role="menuitem"]');
+    if (!menuItems?.length) return;
+
+    let currentFocus = 0;
+
+    function handleKeyDown(e: KeyboardEvent) {
+      if (!menuItems) return;
+
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        e.preventDefault();
+        
+        if (e.key === 'ArrowDown') {
+          currentFocus = (currentFocus + 1) % menuItems.length;
+        } else {
+          currentFocus = (currentFocus - 1 + menuItems.length) % menuItems.length;
+        }
+
+        (menuItems[currentFocus] as HTMLElement).focus();
+      } else if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        (menuItems[currentFocus] as HTMLElement).click();
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen]);
+
+  // Optimized language change with loading state
+  const [isChanging, setIsChanging] = useState(false);
+  
   const changeLanguage = useCallback(async (lng: string) => {
+    if (isChanging) return;
+    
+    setIsChanging(true);
     try {
-      await i18n.changeLanguage(lng)
-      localStorage.setItem('preferredLanguage', lng)
+      await i18n.changeLanguage(lng);
+      localStorage.setItem('preferredLanguage', lng);
+      document.documentElement.lang = lng;
       
       Analytics.event({
         action: 'change_language',
         category: 'Language',
         label: lng,
         value: Date.now()
-      })
+      });
       
-      setIsOpen(false)
+      setIsOpen(false);
     } catch (error) {
-      console.error('Language change failed:', error)
-      Analytics.trackError(error as Error, {
-        context: 'LanguageSwitcher',
-        action: 'change_language',
-        targetLanguage: lng
-      })
+      console.error('Language change failed:', error);
+    } finally {
+      setIsChanging(false);
     }
-  }, [i18n])
+  }, [i18n, isChanging]);
 
   // Get current language
-  const currentLang = languages.find(lang => lang.code === i18n.language) || languages[0]
+  const currentLang = languages.find(lang => lang.code === i18n.language) || languages[0];
 
   // Animation variants
   const menuVariants = {
@@ -136,7 +175,7 @@ function LanguageSwitcher() {
         duration: 0.2
       }
     }
-  }
+  };
 
   return (
     <div className="relative" ref={menuRef}>
@@ -150,8 +189,9 @@ function LanguageSwitcher() {
           "bg-gray-800/50 hover:bg-gray-700/50",
           "text-gray-300 hover:text-white transition-all duration-200",
           "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2",
-          "focus:ring-offset-gray-900"
+          "focus:ring-offset-gray-900 disabled:opacity-50"
         )}
+        disabled={isChanging}
         aria-expanded={isOpen}
         aria-haspopup="true"
         aria-label={`Sprache ändern. Aktuelle Sprache: ${currentLang.nativeName}`}
@@ -166,15 +206,15 @@ function LanguageSwitcher() {
       <AnimatePresence mode="wait">
         {isOpen && (
           <motion.div
+            variants={prefersReducedMotion ? {} : menuVariants}
             initial="hidden"
             animate="visible"
             exit="exit"
-            variants={prefersReducedMotion ? {} : menuVariants}
             className={cn(
               "absolute right-0 mt-2 w-48 rounded-lg",
               "bg-gray-800/90 shadow-lg ring-1 ring-gray-700",
               "backdrop-blur-sm divide-y divide-gray-700",
-              "z-50"
+              "z-50 overflow-hidden"
             )}
             role="menu"
             aria-orientation="vertical"
