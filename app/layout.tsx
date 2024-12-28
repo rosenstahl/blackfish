@@ -1,32 +1,63 @@
-// app/layout.tsx
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 
 // Components
-import Header from "@/app/components/layout/Header";
-import Footer from "@/app/components/layout/Footer";
-import CookieBanner from "@/app/components/common/CookieBanner";
-import GlobalErrorBoundary from "./components/common/GlobalErrorBoundary";
-import SkipLink from "@/app/components/common/SkipLink";
+import dynamic from 'next/dynamic';
+import { Suspense } from 'react';
+
+// Lazy loaded components
+const Header = dynamic(() => import("@/app/components/layout/Header"), {
+  ssr: true
+});
+const Footer = dynamic(() => import("@/app/components/layout/Footer"), {
+  ssr: true
+});
+const CookieBanner = dynamic(() => import("@/app/components/common/CookieBanner"), {
+  ssr: false
+});
+const SkipLink = dynamic(() => import("@/app/components/common/SkipLink"), {
+  ssr: true
+});
 
 // Providers
-import { CookieConsentProvider } from "@/app/context/CookieConsentContext";
-import { LoadingProvider } from "@/app/context/LoadingContext";
 import { Providers } from './providers/Providers';
 
 // Config & Utils
 import defaultMetadata from "@/app/lib/metadata";
 import { getOrganizationSchema } from '@/app/lib/schema';
 
-// Font Configuration
+// Font Configuration with performance optimization
 const inter = Inter({ 
   subsets: ["latin"],
-  display: 'swap'
+  display: 'swap',
+  preload: true,
+  fallback: ['system-ui', 'arial']
 });
 
 // Metadata Configuration
-export const metadata: Metadata = defaultMetadata;
+export const metadata: Metadata = {
+  ...defaultMetadata,
+  viewport: {
+    width: 'device-width',
+    initialScale: 1,
+    maximumScale: 5,
+    viewportFit: 'cover',
+  },
+  verification: {
+    google: 'google-site-verification=xyz', // Fügen Sie Ihre Verifizierung hinzu
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  },
+};
 
 export default function RootLayout({
   children,
@@ -42,27 +73,28 @@ export default function RootLayout({
             __html: JSON.stringify(getOrganizationSchema())
           }}
         />
-        <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <meta name="theme-color" content="#1a1f36" />
+        <link rel="manifest" href="/manifest.json" />
+        <link rel="icon" href="/favicon.ico" sizes="any" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
       </head>
       <body 
         className={`${inter.className} bg-gray-900 text-white antialiased min-h-screen`}
       >
         <Providers>
-          <GlobalErrorBoundary>
-            <CookieConsentProvider>
-              <LoadingProvider>
-                <SkipLink />
-                <div className="relative flex min-h-screen flex-col">
-                  <Header />
-                  <main id="main-content" className="flex-grow">
-                    {children}
-                  </main>
-                  <Footer />
-                  <CookieBanner />
-                </div>
-              </LoadingProvider>
-            </CookieConsentProvider>
-          </GlobalErrorBoundary>
+          <Suspense fallback={null}>
+            <SkipLink />
+            <div className="relative flex min-h-screen flex-col">
+              <Header />
+              <main id="main-content" className="flex-grow">
+                {children}
+              </main>
+              <Footer />
+              <CookieBanner />
+            </div>
+          </Suspense>
         </Providers>
       </body>
     </html>
