@@ -1,35 +1,52 @@
-import { useCallback, memo } from 'react'
-import { cn } from '@/app/lib/utils'
+import { useCallback, useEffect, useState, memo } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { Analytics } from '@/app/lib/analytics'
+import { cn } from '@/app/lib/utils'
 import { useKeyPress } from '@/hooks/useKeyPress'
-import { useVisibilityState } from '@/hooks/useVisibilityState'
 
 interface SkipLinkProps {
   mainId?: string;
   className?: string;
   label?: string;
+  showOnTab?: boolean;
 }
 
 function SkipLink({
   mainId = 'main-content',
   className,
-  label = 'Zum Hauptinhalt springen'
+  label = 'Zum Hauptinhalt springen',
+  showOnTab = true
 }: SkipLinkProps) {
-  const { isVisible, show, hide } = useVisibilityState(false)
+  const [isVisible, setIsVisible] = useState(false)
 
-  // Track Tab key press
-  useKeyPress('Tab', () => show())
+  // Use custom hook for Tab key detection
+  useKeyPress('Tab', () => {
+    if (showOnTab) {
+      setIsVisible(true)
+    }
+  })
 
+  // Handle Escape key to hide
+  useKeyPress('Escape', () => {
+    setIsVisible(false)
+  })
+
+  // Handle click with focus management
   const handleClick = useCallback((e: React.MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault()
 
     const mainElement = document.getElementById(mainId)
     if (mainElement) {
-      // First set focus
-      mainElement.focus()
+      // Save current scroll position
+      const currentScroll = window.scrollY
 
-      // Then smooth scroll
-      mainElement.scrollIntoView({ 
+      // Focus and scroll
+      mainElement.focus({
+        preventScroll: true // Prevent automatic scrolling
+      })
+
+      // Smooth scroll to element
+      mainElement.scrollIntoView({
         behavior: 'smooth',
         block: 'start'
       })
@@ -39,64 +56,77 @@ function SkipLink({
         action: 'skip_link_used',
         category: 'Accessibility',
         label: mainId,
-        value: window.scrollY // Track scroll position when used
+        value: currentScroll // Track where the user was when they used the skip link
       })
 
-      // Add URL hash for better bookmarking
-      if (window.history.pushState) {
-        window.history.pushState(null, '', `#${mainId}`)
-      } else {
-        window.location.hash = mainId
-      }
-    } else {
-      // Log error if target element not found
-      console.error(`Skip link target #${mainId} not found`)
-      Analytics.trackError(new Error(`Skip link target #${mainId} not found`), {
-        component: 'SkipLink',
-        action: 'target_not_found'
-      })
+      // Hide skip link after use
+      setIsVisible(false)
     }
   }, [mainId])
 
+  // Animation variants
+  const variants = {
+    hidden: { 
+      y: -100,
+      opacity: 0
+    },
+    visible: { 
+      y: 0,
+      opacity: 1,
+      transition: {
+        type: 'spring',
+        stiffness: 500,
+        damping: 25
+      }
+    },
+    exit: { 
+      y: -100,
+      opacity: 0,
+      transition: {
+        duration: 0.2
+      }
+    }
+  }
+
   return (
-    <a
-      href={`#${mainId}`}
-      onClick={handleClick}
-      onFocus={show}
-      onBlur={hide}
-      className={cn(
-        "fixed top-4 left-4 z-[100]", // Higher z-index to ensure visibility
-        "transform transition-transform duration-200",
-        isVisible ? "translate-y-0" : "-translate-y-full",
-        "bg-blue-500 text-white px-4 py-2 rounded-md shadow-lg",
-        "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2",
-        "hover:bg-blue-600 active:bg-blue-700",
-        "text-base font-medium", // Ensure readable text size
-        className
+    <AnimatePresence>
+      {isVisible && (
+        <motion.a
+          href={`#${mainId}`}
+          onClick={handleClick}
+          onFocus={() => setIsVisible(true)}
+          onBlur={() => setIsVisible(false)}
+          initial="hidden"
+          animate="visible"
+          exit="exit"
+          variants={variants}
+          className={cn(
+            "fixed top-4 left-4 z-50",
+            "bg-blue-500 text-white px-4 py-2 rounded-md shadow-lg",
+            "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2",
+            "hover:bg-blue-600 active:bg-blue-700",
+            "transition-colors duration-200",
+            className
+          )}
+          style={{
+            // Ensure WCAG compliance for keyboard accessibility
+            isolation: 'isolate',
+            // High contrast support
+            '@media (forced-colors: active)': {
+              forcedColorAdjust: 'none'
+            }
+          }}
+          role="link"
+          aria-label={label}
+          tabIndex={0}
+        >
+          {label}
+        </motion.a>
       )}
-      style={{
-        // Improved accessibility hiding
-        position: isVisible ? 'fixed' : 'absolute',
-        width: isVisible ? 'auto' : '1px',
-        height: isVisible ? 'auto' : '1px',
-        padding: isVisible ? undefined : 0,
-        margin: isVisible ? undefined : '-1px',
-        overflow: 'hidden',
-        clip: isVisible ? 'auto' : 'rect(0, 0, 0, 0)',
-        whiteSpace: 'nowrap',
-        border: 0
-      }}
-      role="link"
-      aria-label={label}
-      tabIndex={0}
-      data-testid="skip-link"
-    >
-      {label}
-    </a>
+    </AnimatePresence>
   )
 }
 
+// Performance optimization
 SkipLink.displayName = 'SkipLink'
-
-// Performance optimization through memoization
 export default memo(SkipLink)
