@@ -1,6 +1,6 @@
-// app/layout.tsx
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
+import { clsx } from 'clsx';
 import "./globals.css";
 
 // Components
@@ -19,14 +19,28 @@ import { Providers } from './providers/Providers';
 import defaultMetadata from "@/app/lib/metadata";
 import { getOrganizationSchema } from '@/app/lib/schema';
 
+// Viewport Configuration
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
+  themeColor: '#111827',
+  colorScheme: 'dark'
+};
+
 // Font Configuration
 const inter = Inter({ 
   subsets: ["latin"],
-  display: 'swap'
+  display: 'swap',
+  preload: true,
+  fallback: ['system-ui', '-apple-system', 'sans-serif']
 });
 
 // Metadata Configuration
-export const metadata: Metadata = defaultMetadata;
+export const metadata: Metadata = {
+  ...defaultMetadata,
+  viewport: 'width=device-width, initial-scale=1, viewport-fit=cover'
+};
 
 export default function RootLayout({
   children,
@@ -34,18 +48,25 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="de" className="scroll-smooth">
+    <html lang="de" className="scroll-smooth" suppressHydrationWarning>
       <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
             __html: JSON.stringify(getOrganizationSchema())
           }}
         />
-        <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
       </head>
       <body 
-        className={`${inter.className} bg-gray-900 text-white antialiased min-h-screen`}
+        className={clsx(
+          inter.className,
+          'bg-gray-900',
+          'text-white',
+          'antialiased',
+          'min-h-screen'
+        )}
       >
         <Providers>
           <GlobalErrorBoundary>

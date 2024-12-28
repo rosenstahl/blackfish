@@ -1,164 +1,25 @@
-import { useEffect, memo } from 'react'
-import { motion, useAnimation } from 'framer-motion'
-import { Analytics } from '@/app/lib/analytics'
-import { cn } from '@/app/lib/utils'
+'use client';
 
-interface PageLoadingIndicatorProps {
-  message?: string;
-  duration?: number;
-  onLoadingComplete?: () => void;
-}
+import { motion } from 'framer-motion';
+import { Loader2 } from 'lucide-react';
 
-export default memo(function PageLoadingIndicator({
-  message = 'Loading...',
-  duration = 2,
-  onLoadingComplete
-}: PageLoadingIndicatorProps) {
-  // Animation controls
-  const circleControls = useAnimation()
-  const textControls = useAnimation()
-
-  useEffect(() => {
-    // Track loading start
-    Analytics.event({
-      action: 'loading_start',
-      category: 'UI',
-      value: duration
-    })
-
-    // Start animations
-    const startAnimations = async () => {
-      // Animate circle
-      await circleControls.start({
-        scale: [1, 1.2, 1],
-        rotate: [0, 180, 360],
-        transition: {
-          duration,
-          repeat: Infinity,
-          ease: "easeInOut"
-        }
-      })
-    }
-
-    startAnimations()
-
-    // Track loading time
-    const loadingTimeout = setTimeout(() => {
-      Analytics.event({
-        action: 'loading_timeout',
-        category: 'Error',
-        value: duration
-      })
-    }, duration * 1000 * 2) // Double the animation duration
-
-    return () => {
-      clearTimeout(loadingTimeout)
-      circleControls.stop()
-      textControls.stop()
-    }
-  }, [circleControls, textControls, duration])
-
+export default function PageLoadingIndicator() {
   return (
-    <div
-      role="alert"
-      aria-live="polite"
-      className={cn(
-        "fixed inset-0 z-50",
-        "flex items-center justify-center",
-        "bg-[#1a1f36]/90 backdrop-blur-sm"
-      )}
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/50 backdrop-blur-sm"
     >
-      <div className="relative">
-        {/* Logo Animation */}
-        <motion.div
-          animate={circleControls}
-          className={cn(
-            "w-16 h-16",
-            "border-2 border-blue-500 rounded-full"
-          )}
-        />
-        
-        {/* Loading Circle */}
-        <motion.div
-          animate={{
-            rotate: 360
-          }}
-          transition={{
-            duration: 1.5,
-            repeat: Infinity,
-            ease: "linear"
-          }}
-          className={cn(
-            "absolute inset-0",
-            "border-t-2 border-white rounded-full"
-          )}
-        />
-
-        {/* Loading Text */}
-        <motion.p
-          animate={{
-            opacity: [0.5, 1, 0.5]
-          }}
-          transition={{
-            duration: 2,
-            repeat: Infinity,
-            ease: "easeInOut"
-          }}
-          className={cn(
-            "absolute -bottom-8 left-1/2 -translate-x-1/2",
-            "text-white font-medium"
-          )}
-        >
-          {message}
-        </motion.p>
-
-        {/* Screen Reader Only Text */}
-        <span className="sr-only">
-          Page is loading. Please wait.
-        </span>
-
-        {/* Progress Ring (optional) */}
-        <svg
-          className="absolute inset-0 w-16 h-16"
-          viewBox="0 0 100 100"
-          aria-hidden="true"
-        >
-          <circle
-            className="text-gray-700"
-            strokeWidth="4"
-            stroke="currentColor"
-            fill="transparent"
-            r="48"
-            cx="50"
-            cy="50"
-          />
-          <motion.circle
-            className="text-blue-500"
-            strokeWidth="4"
-            stroke="currentColor"
-            fill="transparent"
-            r="48"
-            cx="50"
-            cy="50"
-            style={{
-              strokeDasharray: "301.59289474462014",
-              strokeDashoffset: "301.59289474462014",
-              rotate: "-90deg",
-              transformOrigin: "50% 50%"
-            }}
-            animate={{
-              strokeDashoffset: [301.59289474462014, 0]
-            }}
-            transition={{
-              duration: duration,
-              ease: "linear",
-              repeat: Infinity
-            }}
-          />
-        </svg>
-      </div>
-    </div>
-  )
-})
-
-PageLoadingIndicator.displayName = 'PageLoadingIndicator'
+      <motion.div
+        initial={{ scale: 0.8 }}
+        animate={{ scale: 1 }}
+        exit={{ scale: 0.8 }}
+        className="flex items-center gap-3 px-6 py-4 bg-gray-800 rounded-lg shadow-xl"
+      >
+        <Loader2 className="w-5 h-5 animate-spin text-blue-400" />
+        <span className="text-sm font-medium text-white">Wird geladen...</span>
+      </motion.div>
+    </motion.div>
+  );
+}

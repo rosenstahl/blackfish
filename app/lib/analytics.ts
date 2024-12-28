@@ -1,155 +1,137 @@
-import { trackEvent } from "./monitoring";
+import { getCookie, setCookie } from 'cookies-next';
 
-// app/lib/analytics.ts
-declare global {
-  interface Window {
-    gtag: (command: string, ...args: any[]) => void;
-    dataLayer: Array<IArguments | any[]>;
-  }
-}
-
-// Google Analytics ID
-const GA_MEASUREMENT_ID = 'G-XXXXXXXXXX' // Hier deine Google Analytics ID einsetzen
-
-// Events-Typen
-export interface EventType {
+type EventType = {
   action: string;
   category: string;
   label?: string;
   value?: number;
-  metric_rating?: 'good' | 'needs-improvement' | 'poor';
-}
+};
 
-export const Analytics = {
-  init: () => {
-    if (typeof window === 'undefined') return;
+class Analytics {
+  private static instance: Analytics;
+  private initialized: boolean = false;
+  private consentGiven: boolean = false;
+  private queue: EventType[] = [];
+  private scrollDepthMarkers = [25, 50, 75, 90];
+  private sessionStart: number;
 
-    try {
-      if (document.querySelector(`script[src*="googletagmanager.com/gtag"]`)) return;
-
-      const script = document.createElement('script')
-      script.src = `https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`
-      script.async = true
-      document.head.appendChild(script)
-
-      window.dataLayer = window.dataLayer || []
-      window.gtag = function gtag(...args: any[]) {
-        window.dataLayer.push(args)
-      }
-      window.gtag('js', new Date())
-      window.gtag('config', GA_MEASUREMENT_ID, {
-        send_page_view: false // Wir tracken Page Views manuell
-      })
-    } catch (error) {
-      console.error('Failed to initialize Google Analytics:', error)
-    }
-  },
-
-  // Seitenaufrufe tracken
-  pageview: (url: string) => {
-    try {
-      if (typeof window === 'undefined' || !window.gtag) return;
-      
-      window.gtag('config', GA_MEASUREMENT_ID, {
-        page_path: url
-      })
-    } catch (error) {
-      console.error('Failed to track pageview:', error)
-    }
-  },
-
-  // Events tracken
-  event: ({ action, category, label, value }: EventType) => {
-    try {
-      if (typeof window === 'undefined' || !window.gtag) return;
-
-      window.gtag('event', action, {
-        event_category: category,
-        event_label: label,
-        value: value
-      })
-    } catch (error) {
-      console.error('Failed to track event:', error)
+  private constructor() {
+    if (typeof window !== 'undefined') {
+      this.checkConsent();
+      this.bindEvents();
+      this.sessionStart = Date.now();
     }
   }
-}
 
-// Performance Monitoring
-export const Performance = {
-  // Lade-Performance messen
-  measurePageLoad: () => {
-    if (typeof window === 'undefined' || !('PerformanceObserver' in window)) return;
-    
-    try {
-      const observer = new PerformanceObserver((list) => {
-        const entries = list.getEntries();
-        if (!entries.length) return;
-
-        entries.forEach((entry) => {
-          // Performance-Daten an Analytics senden
-          Analytics.event({
-            action: 'web_vital',
-            category: 'Performance',
-            label: entry.name,
-            value: Math.round(entry.startTime)
-          })
-        })
-      })
-      
-      observer.observe({ entryTypes: ['largest-contentful-paint', 'first-input', 'layout-shift'] })
-
-      return () => observer.disconnect(); // Clean up function
-    } catch (error) {
-      console.warn('PerformanceObserver not supported:', error)
+  private checkConsent() {
+    const consent = getCookie('analytics-consent');
+    this.consentGiven = consent === 'true';
+    if (this.consentGiven && !this.initialized) {
+      this.initializeAnalytics();
     }
-  },
+  }
 
-  // Resourcen-Nutzung tracken
-  trackResources: () => {
-    if (typeof window === 'undefined' || !('PerformanceObserver' in window)) return;
+  private bindEvents() {
+    if (typeof window === 'undefined') return;
 
-    try {
-      const resourceObserver = new PerformanceObserver((list) => {
-        const entries = list.getEntries();
-        if (!entries.length) return;
+    // Track scroll depth
+    let maxScroll = 0;
+    window.addEventListener('scroll', () => {
+      if (!this.consentGiven) return;
 
-        entries.forEach((entry) => {
-          if ((entry as PerformanceResourceTiming).initiatorType === 'fetch' || 
-              (entry as PerformanceResourceTiming).initiatorType === 'xmlhttprequest') {
-            Analytics.event({
-              action: 'resource_timing',
-              category: 'Performance',
-              label: entry.name,
-              value: Math.round(entry.duration)
-            })
+      const scrollPercent = Math.round(
+        (window.scrollY / (document.documentElement.scrollHeight - window.innerHeight)) * 100
+      );
+
+      if (scrollPercent > maxScroll) {
+        maxScroll = scrollPercent;
+        this.scrollDepthMarkers.forEach(marker => {
+          if (scrollPercent >= marker) {
+            this.trackEvent('scroll_depth', 'Engagement', `${marker}%`);
+            this.scrollDepthMarkers = this.scrollDepthMarkers.filter(m => m !== marker);
           }
-        })
-      })
+        });
+      }
+    }, { passive: true });
 
-      resourceObserver.observe({ entryTypes: ['resource'] })
-      return () => resourceObserver.disconnect(); // Clean up function
-    } catch (error) {
-      console.warn('Resource tracking not supported:', error)
-    }
-  },
+    // Track time on page
+    const trackTimeOnPage = () => {
+      if (!this.consentGiven) return;
+      
+      const timeSpent = Math.round((Date.now() - this.sessionStart) / 1000);
+      const minutes = Math.floor(timeSpent / 60);
+      
+      if (minutes > 0) {
+        this.trackEvent('time_on_page', 'Engagement', `${minutes} minutes`, minutes);
+      }
+    };
 
-  // JavaScript Fehler tracken
-  trackErrors: () => {
-    if (typeof window === 'undefined') return;
+    window.addEventListener('beforeunload', trackTimeOnPage);
 
-    try {
-      const errorHandler = (event: ErrorEvent) => {
-        Analytics.event({
-          action: 'error',
-          category: 'Error',
-          label: `${event.message} at ${event.filename}:${event.lineno}`,
-        })
-      };
+    // Track form interactions
+    document.addEventListener('submit', (e) => {
+      const form = e.target as HTMLFormElement;
+      if (form.id) {
+        this.trackEvent('form_submit', 'Forms', form.id);
+      }
+    });
 
-      window.addEventListener('error', errorHandler)
-      return () => window.removeEventListener('error', errorHandler); // Clean up function
-    } catch (error) {
-      console.warn('Error tracking not supported:', error)
+    // Track file downloads
+    document.addEventListener('click', (e) => {
+      const target = e.target as HTMLAnchorElement;
+      if (target.tagName === 'A') {
+        const href = target.href;
+        const fileExtensions = ['.pdf', '.zip', '.doc', '.docx', '.xls', '.xlsx'];
+        
+        if (fileExtensions.some(ext => href.toLowerCase().endsWith(ext))) {
+          this.trackEvent('file_download', 'Downloads', href.split('/').pop());
+        }
+      }
+    });
+
+    // Track video interactions
+    document.addEventListener('play', (e) => {
+      const video = e.target as HTMLVideoElement;
+      if (video.tagName === 'VIDEO') {
+        this.trackEvent('video_play', 'Video', video.currentSrc.split('/').pop());
+      }
+    }, true);
+
+    // Track 404 errors
+    if (document.title.includes('404')) {
+      this.trackEvent('error_404', 'Error', window.location.pathname);
     }
   }
+
+  public startUserSession() {
+    if (this.consentGiven) {
+      const sessionId = Math.random().toString(36).substring(2);
+      setCookie('session-id', sessionId, {
+        maxAge: 30 * 60, // 30 minutes
+        path: '/',
+        secure: true,
+        sameSite: 'strict'
+      });
+
+      this.trackEvent('session_start', 'Session', sessionId);
+    }
+  }
+
+  public trackUserAction(action: string, details: Record<string, any> = {}) {
+    if (!this.consentGiven) return;
+
+    this.trackEvent(
+      action,
+      'User Action',
+      Object.entries(details)
+        .map(([key, value]) => `${key}:${value}`)
+        .join(',')
+    );
+  }
+
+  public getSessionDuration(): number {
+    return Math.round((Date.now() - this.sessionStart) / 1000);
+  }
 }
+
+export const analytics = Analytics.getInstance();
