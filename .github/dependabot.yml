@@ -1,0 +1,81 @@
+version: 2
+updates:
+  # NPM dependencies
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Europe/Berlin"
+    open-pull-requests-limit: 10
+    target-branch: "main"
+    versioning-strategy: "auto"
+    labels:
+      - "dependencies"
+      - "npm"
+    reviewers:
+      - "rosenstahl"
+    commit-message:
+      prefix: "chore"
+      prefix-development: "chore"
+      include: "scope"
+    groups:
+      next:
+        patterns:
+          - "next*"
+          - "@next*"
+      react:
+        patterns:
+          - "react*"
+          - "@types/react*"
+      eslint:
+        patterns:
+          - "eslint*"
+          - "@typescript-eslint*"
+      testing:
+        patterns:
+          - "jest*"
+          - "@testing-library*"
+          - "cypress*"
+          - "@cypress*"
+          - "playwright*"
+          - "@playwright*"
+
+  # GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Europe/Berlin"
+    open-pull-requests-limit: 10
+    target-branch: "main"
+    labels:
+      - "dependencies"
+      - "github-actions"
+    reviewers:
+      - "rosenstahl"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+
+  # Docker
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Europe/Berlin"
+    open-pull-requests-limit: 10
+    target-branch: "main"
+    labels:
+      - "dependencies"
+      - "docker"
+    reviewers:
+      - "rosenstahl"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
