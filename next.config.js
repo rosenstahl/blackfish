@@ -1,1 +1,42 @@
-const withBundleAnalyzer = require('@next/bundle-analyzer')({\n  enabled: process.env.ANALYZE === 'true',\n})\n\nconst withPWA = require('next-pwa')({\n  dest: 'public',\n  register: true,\n  skipWaiting: true,\n  disable: process.env.NODE_ENV === 'development'\n})\n\n// Security Headers\nconst securityHeaders = [\n  {\n    key: 'X-DNS-Prefetch-Control',\n    value: 'on'\n  },\n  {\n    key: 'Strict-Transport-Security',\n    value: 'max-age=63072000; includeSubDomains; preload'\n  },\n  {\n    key: 'X-Frame-Options',\n    value: 'SAMEORIGIN'\n  },\n  {\n    key: 'X-Content-Type-Options',\n    value: 'nosniff'\n  },\n  {\n    key: 'Referrer-Policy',\n    value: 'origin-when-cross-origin'\n  },\n  {\n    key: 'Permissions-Policy',\n    value: 'camera=(), microphone=(), geolocation=()'\n  }\n]\n\n/** @type {import('next').NextConfig} */\nconst nextConfig = {\n  reactStrictMode: true,\n  swcMinify: true,\n  compiler: {\n    removeConsole: process.env.NODE_ENV === 'production',\n  },\n  experimental: {\n    optimizeCss: true,\n    turbo: {\n      loaders: {\n        '.svg': ['@svgr/webpack'],\n      },\n    },\n  },\n  images: {\n    formats: ['image/avif', 'image/webp'],\n    remotePatterns: [],\n  },\n  headers: async () => {\n    return [\n      {\n        source: '/:path*',\n        headers: securityHeaders,\n      },\n    ]\n  },\n  webpack: (config, { dev, isServer }) => {\n    // SVG Optimization\n    config.module.rules.push({\n      test: /\.svg$/,\n      use: ['@svgr/webpack'],\n    })\n\n    // Optimize packages\n    if (!dev && !isServer) {\n      Object.assign(config.resolve.alias, {\n        'react/jsx-runtime.js': 'preact/compat/jsx-runtime',\n        react: 'preact/compat',\n        'react-dom/test-utils': 'preact/test-utils',\n        'react-dom': 'preact/compat',\n      })\n    }\n\n    return config\n  },\n}\n\n// Compose the Next.js config with bundle analyzer and PWA\nmodule.exports = withBundleAnalyzer(withPWA(nextConfig))
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  reactStrictMode: true,
+  experimental: {
+    optimizeCss: true
+  },
+  images: {
+    formats: ['image/avif', 'image/webp'],
+    remotePatterns: []
+  },
+  async headers() {
+    return [
+      {
+        source: '/:path*',
+        headers: [
+          {
+            key: 'X-DNS-Prefetch-Control',
+            value: 'on'
+          },
+          {
+            key: 'Strict-Transport-Security',
+            value: 'max-age=63072000; includeSubDomains; preload'
+          },
+          {
+            key: 'X-Frame-Options',
+            value: 'SAMEORIGIN'
+          },
+          {
+            key: 'X-Content-Type-Options',
+            value: 'nosniff'
+          },
+          {
+            key: 'Referrer-Policy',
+            value: 'origin-when-cross-origin'
+          }
+        ]
+      }
+    ]
+  }
+}
+
+module.exports = nextConfig
