@@ -1,65 +1,68 @@
+import type { NextConfig } from 'next';
 import crypto from 'crypto';
-import { withSentryConfig } from '@sentry/nextjs';
 
 const withBundleAnalyzer = require('@next/bundle-analyzer')({
   enabled: process.env.ANALYZE === 'true',
-})
+});
 
 const withPWA = require('next-pwa')({
   dest: 'public',
   disable: process.env.NODE_ENV === 'development',
   register: true,
   skipWaiting: true,
-  runtimeCaching: [
-    {
-      urlPattern: /^https:\/\/fonts\.(?:gstatic)\.com\/.*/i,
-      handler: 'CacheFirst',
-      options: {
-        cacheName: 'google-fonts-webfonts',
-        expiration: {
-          maxEntries: 4,
-          maxAgeSeconds: 365 * 24 * 60 * 60
-        }
-      }
-    },
-    {
-      urlPattern: /^https:\/\/fonts\.(?:googleapis)\.com\/.*/i,
-      handler: 'StaleWhileRevalidate',
-      options: {
-        cacheName: 'google-fonts-stylesheets',
-        expiration: {
-          maxEntries: 4,
-          maxAgeSeconds: 7 * 24 * 60 * 60
-        }
-      }
-    },
-    {
-      urlPattern: /\/_next\/image\?url=.*/i,
-      handler: 'CacheFirst',
-      options: {
-        cacheName: 'next-image',
-        expiration: {
-          maxEntries: 60,
-          maxAgeSeconds: 24 * 60 * 60
-        }
-      }
-    },
-    {
-      urlPattern: /\.(?:png|jpg|jpeg|svg|gif|webp)$/i,
-      handler: 'CacheFirst',
-      options: {
-        cacheName: 'static-images',
-        expiration: {
-          maxEntries: 60,
-          maxAgeSeconds: 24 * 60 * 60
-        }
-      }
-    }
-  ]
-})
+});
 
-/** @type {import('next').NextConfig} */
-const nextConfig = {
+const cspHeader = {
+  key: 'Content-Security-Policy',
+  value: [
+    "default-src 'self'",
+    "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://www.googletagmanager.com",
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+    "img-src 'self' data: https: blob:",
+    "font-src 'self' https://fonts.gstatic.com",
+    "connect-src 'self' https://www.google-analytics.com",
+    "frame-ancestors 'none'",
+    "form-action 'self'",
+    "base-uri 'self'",
+    "object-src 'none'",
+    "worker-src 'self'",
+    "manifest-src 'self'"
+  ].join('; ')
+};
+
+const securityHeaders = [
+  {
+    key: 'X-DNS-Prefetch-Control',
+    value: 'on'
+  },
+  {
+    key: 'Strict-Transport-Security',
+    value: 'max-age=63072000; includeSubDomains; preload'
+  },
+  {
+    key: 'X-Frame-Options',
+    value: 'SAMEORIGIN'
+  },
+  {
+    key: 'X-Content-Type-Options',
+    value: 'nosniff'
+  },
+  {
+    key: 'X-XSS-Protection',
+    value: '1; mode=block'
+  },
+  {
+    key: 'Referrer-Policy',
+    value: 'strict-origin-when-cross-origin'
+  },
+  {
+    key: 'Permissions-Policy',
+    value: 'camera=(), microphone=(), geolocation=(), interest-cohort=()'
+  },
+  cspHeader
+];
+
+const nextConfig: NextConfig = {
   reactStrictMode: true,
   swcMinify: true,
   poweredByHeader: false,
@@ -83,7 +86,7 @@ const nextConfig = {
     config.module.rules.push({
       test: /\.svg$/i,
       use: ['@svgr/webpack'],
-    })
+    });
 
     config.module.rules.push({
       test: /\.(png|jpe?g|gif|webp)$/i,
@@ -100,16 +103,16 @@ const nextConfig = {
           },
         },
       ],
-    })
+    });
 
     if (!dev) {
-      config.optimization.concatenateModules = true
-      config.optimization.moduleIds = 'deterministic'
-      config.optimization.chunkIds = 'deterministic'
+      config.optimization.concatenateModules = true;
+      config.optimization.moduleIds = 'deterministic';
+      config.optimization.chunkIds = 'deterministic';
       
       config.optimization.runtimeChunk = {
         name: 'runtime',
-      }
+      };
       
       config.optimization.splitChunks = {
         chunks: 'all',
@@ -129,13 +132,13 @@ const nextConfig = {
             test: /[\\/]node_modules[\\/]/,
             priority: 30,
             chunks: 'all',
-            name(module) {
-              const match = module.context.match(/[\\/]node_modules[\\/](.*?)([\\]|$)/)
+            name: (module: any) => {
+              const match = module.context.match(/[\\/]node_modules[\\/](.*?)([\\/]|$)/);
               if (match) {
-                const packageName = match[1].replace('@', '')
-                return `lib.${packageName.replace(/[\\/]/g, '.')}'
+                const packageName = match[1].replace('@', '');
+                return `lib.${packageName.replace(/[\\/]/g, '.')}`;
               }
-              return 'lib'
+              return 'lib';
             },
           },
           commons: {
@@ -144,91 +147,35 @@ const nextConfig = {
             priority: 20,
           },
           shared: {
-            name: (module, chunks) => {
+            name: (module: any, chunks: any[]) => {
               const hash = crypto
                 .createHash('sha1')
                 .update(chunks.map(c => c.name).join('_'))
-                .digest('hex')
-              return `shared_${hash}`
+                .digest('hex');
+              return `shared_${hash}`;
             },
             priority: 10,
             minChunks: 2,
             reuseExistingChunk: true,
           },
         },
-      }
+      };
 
       if (!isServer) {
-        config.optimization.minimize = true
+        config.optimization.minimize = true;
       }
     }
 
-    return config
+    return config;
   },
 
   async headers() {
     return [
       {
         source: '/:path*',
-        headers: [
-          {
-            key: 'X-DNS-Prefetch-Control',
-            value: 'on'
-          },
-          {
-            key: 'Strict-Transport-Security',
-            value: 'max-age=63072000; includeSubDomains; preload'
-          },
-          {
-            key: 'X-Frame-Options',
-            value: 'SAMEORIGIN'
-          },
-          {
-            key: 'X-Content-Type-Options',
-            value: 'nosniff'
-          },
-          {
-            key: 'X-XSS-Protection',
-            value: '1; mode=block'
-          },
-          {
-            key: 'Referrer-Policy',
-            value: 'strict-origin-when-cross-origin'
-          },
-          {
-            key: 'Permissions-Policy',
-            value: 'camera=(), microphone=(), geolocation=(), interest-cohort=()'
-          },
-          {
-            key: 'Content-Security-Policy',
-            value: `
-              default-src 'self';
-              script-src 'self' 'unsafe-eval' 'unsafe-inline' https://www.googletagmanager.com;
-              style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
-              img-src 'self' data: https: blob:;
-              font-src 'self' https://fonts.gstatic.com;
-              connect-src 'self' https://www.google-analytics.com;
-              frame-ancestors 'none';
-              form-action 'self';
-              base-uri 'self';
-              object-src 'none';
-              worker-src 'self';
-              manifest-src 'self';
-            `.replace(/\s+/g, ' ').trim()
-          }
-        ]
+        headers: securityHeaders
       }
-    ]
-  },
-
-  async redirects() {
-    return [
-      {
-        source: '/home',
-        destination: '/',
-        permanent: true,
-      }
-    ]
+    ];
   },
 
   async rewrites() {
@@ -237,11 +184,11 @@ const nextConfig = {
       afterFiles: [
         {
           source: '/api/:path*',
-          destination: `${process.env.API_URL}/:path*`
+          destination: `${process.env.API_URL}/:path*`,
         }
       ],
       fallback: []
-    }
+    };
   },
 
   env: {
@@ -257,15 +204,10 @@ const nextConfig = {
     serverComponentsExternalPackages: ['sharp'],
     optimizePackageImports: ['lucide-react', '@headlessui/react'],
   },
-}
+};
 
-const sentryWebpackPluginOptions = {
-  silent: true,
-}
-
-const config = () => {
-  const plugins = [withBundleAnalyzer, withPWA]
-  return plugins.reduce((acc, plugin) => plugin(acc), nextConfig)
-}
-
-export default withSentryConfig(config(), sentryWebpackPluginOptions)
+// Apply plugins
+module.exports = () => {
+  const plugins = [withBundleAnalyzer, withPWA];
+  return plugins.reduce((acc, plugin) => plugin(acc), nextConfig);
+};
