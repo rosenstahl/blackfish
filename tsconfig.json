@@ -29,6 +29,11 @@
     "exactOptionalPropertyTypes": true,
     "noImplicitOverride": true,
     "noPropertyAccessFromIndexSignature": true,
+    "allowUnreachableCode": false,
+    "allowUnusedLabels": false,
+    "noImplicitUseStrict": false,
+    "suppressExcessPropertyErrors": false,
+    "suppressImplicitAnyIndexErrors": false,
     
     // Module Resolution
     "allowJs": true,
@@ -53,16 +58,21 @@
     "removeComments": true,
     "preserveWatchOutput": true,
     "assumeChangesOnlyAffectDirectDependencies": true,
+    "allowImportingTsExtensions": true,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
     
     // Project Structure
     "baseUrl": ".",
     "paths": {
       "@/*": ["./*"],
-      "@components/*": ["./components/*"],
-      "@lib/*": ["./lib/*"],
-      "@hooks/*": ["./hooks/*"],
-      "@context/*": ["./context/*"],
-      "@utils/*": ["./utils/*"]
+      "@components/*": ["./app/components/*"],
+      "@lib/*": ["./app/lib/*"],
+      "@hooks/*": ["./app/hooks/*"],
+      "@context/*": ["./app/context/*"],
+      "@utils/*": ["./app/utils/*"],
+      "@styles/*": ["./app/styles/*"],
+      "@types/*": ["./app/types/*"]
     },
     
     // Plugin Support
@@ -81,6 +91,7 @@
     "**/*.tsx",
     "**/*.d.ts",
     ".next/types/**/*.ts",
+    "middleware.ts",
     "tailwind.config.ts",
     "postcss.config.js"
   ],
@@ -95,6 +106,7 @@
     "**/*.spec.ts",
     "**/*.stories.tsx",
     "cypress",
+    "playwright",
     "jest.config.js",
     "**/sw.js",
     "**/workbox-*.js"
@@ -105,10 +117,5 @@
     "fallbackPolling": "dynamicPriority",
     "synchronousWatchDirectory": true,
     "excludeDirectories": ["**/node_modules", "**/.git", "**/.next"]
-  },
-  "references": [
-    {
-      "path": "./tsconfig.node.json"
-    }
-  ]
+  }
 }
