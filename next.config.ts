@@ -1,3 +1,6 @@
+import crypto from 'crypto';
+import { withSentryConfig } from '@sentry/nextjs';
+
 const withBundleAnalyzer = require('@next/bundle-analyzer')({
   enabled: process.env.ANALYZE === 'true',
 })
@@ -7,6 +10,52 @@ const withPWA = require('next-pwa')({
   disable: process.env.NODE_ENV === 'development',
   register: true,
   skipWaiting: true,
+  runtimeCaching: [
+    {
+      urlPattern: /^https:\/\/fonts\.(?:gstatic)\.com\/.*/i,
+      handler: 'CacheFirst',
+      options: {
+        cacheName: 'google-fonts-webfonts',
+        expiration: {
+          maxEntries: 4,
+          maxAgeSeconds: 365 * 24 * 60 * 60 // 365 days
+        }
+      }
+    },
+    {
+      urlPattern: /^https:\/\/fonts\.(?:googleapis)\.com\/.*/i,
+      handler: 'StaleWhileRevalidate',
+      options: {
+        cacheName: 'google-fonts-stylesheets',
+        expiration: {
+          maxEntries: 4,
+          maxAgeSeconds: 7 * 24 * 60 * 60 // 7 days
+        }
+      }
+    },
+    {
+      urlPattern: /\/_next\/image\?url=.*/i,
+      handler: 'CacheFirst',
+      options: {
+        cacheName: 'next-image',
+        expiration: {
+          maxEntries: 60,
+          maxAgeSeconds: 24 * 60 * 60 // 24 hours
+        }
+      }
+    },
+    {
+      urlPattern: /\.(?:png|jpg|jpeg|svg|gif|webp)$/i,
+      handler: 'CacheFirst',
+      options: {
+        cacheName: 'static-images',
+        expiration: {
+          maxEntries: 60,
+          maxAgeSeconds: 24 * 60 * 60 // 24 hours
+        }
+      }
+    }
+  ]
 })
 
 /** @type {import('next').NextConfig} */
@@ -23,18 +72,20 @@ const nextConfig = {
     formats: ['image/avif', 'image/webp'],
     minimumCacheTTL: 60,
     dangerouslyAllowSVG: false,
+    unoptimized: process.env.NODE_ENV === 'development',
   },
   
   // Build Optimization
   compiler: {
     removeConsole: process.env.NODE_ENV === 'production',
+    styledComponents: true,
   },
   
   // Webpack Configuration
   webpack: (config, { dev, isServer }) => {
     // SVG Optimization
     config.module.rules.push({
-      test: /\.svg$/,
+      test: /\.svg$/i,
       use: ['@svgr/webpack'],
     })
 
@@ -49,6 +100,8 @@ const nextConfig = {
             sizes: [320, 640, 960, 1200, 1800, 2400],
             placeholder: true,
             placeholderSize: 40,
+            format: 'webp',
+            quality: 80,
           },
         },
       ],
@@ -56,8 +109,19 @@ const nextConfig = {
 
     // Production Optimizations
     if (!dev) {
+      // Enable module concatenation
+      config.optimization.concatenateModules = true
+      
+      // Deterministic chunk and module IDs
       config.optimization.moduleIds = 'deterministic'
-      config.optimization.runtimeChunk = 'single'
+      config.optimization.chunkIds = 'deterministic'
+      
+      // Runtime chunk configuration
+      config.optimization.runtimeChunk = {
+        name: 'runtime',
+      }
+      
+      // Enhanced split chunks configuration
       config.optimization.splitChunks = {
         chunks: 'all',
         maxInitialRequests: 25,
@@ -67,14 +131,23 @@ const nextConfig = {
           vendors: false,
           framework: {
             name: 'framework',
-            test: /[\\/]node_modules[\\/](react|react-dom|next)[\\/]/,
-            priority: 40,
             chunks: 'all',
+            test: /[\\/]node_modules[\\/](react|react-dom|next|@next)[\\/]/,
+            priority: 40,
+            enforce: true,
           },
           lib: {
             test: /[\\/]node_modules[\\/]/,
             priority: 30,
             chunks: 'all',
+            name(module) {
+              const match = module.context.match(/[\\/]node_modules[\\/](.*?)([\\/]|$)/)
+              if (match) {
+                const packageName = match[1].replace('@', '')
+                return `lib.${packageName.replace(/[\\/]/g, '.')}`
+              }
+              return 'lib'
+            },
           },
           commons: {
             name: 'commons',
@@ -94,6 +167,11 @@ const nextConfig = {
             reuseExistingChunk: true,
           },
         },
+      }
+
+      // Compression
+      if (!isServer) {
+        config.optimization.minimize = true
       }
     }
 
@@ -132,7 +210,7 @@ const nextConfig = {
           },
           {
             key: 'Permissions-Policy',
-            value: 'camera=(), microphone=(), geolocation=()'
+            value: 'camera=(), microphone=(), geolocation=(), interest-cohort=()'
           },
           {
             key: 'Content-Security-Policy',
@@ -147,6 +225,8 @@ const nextConfig = {
               form-action 'self';
               base-uri 'self';
               object-src 'none';
+              worker-src 'self';
+              manifest-src 'self';
             `.replace(/\s+/g, ' ').trim()
           }
         ]
@@ -190,11 +270,22 @@ const nextConfig = {
     legacyBrowsers: false,
     browsersListForSwc: true,
     forceSwcTransforms: true,
+    serverActions: true,
+    serverComponentsExternalPackages: ['sharp'],
+    optimizePackageImports: ['lucide-react', '@headlessui/react'],
   },
 }
 
+// Sentry configuration
+const sentryWebpackPluginOptions = {
+  silent: true,
+}
+
 // Apply plugins
-module.exports = () => {
+const config = () => {
   const plugins = [withBundleAnalyzer, withPWA]
   return plugins.reduce((acc, plugin) => plugin(acc), nextConfig)
 }
+
+// Export configuration with Sentry
+export default withSentryConfig(config(), sentryWebpackPluginOptions)
