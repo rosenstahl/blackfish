@@ -18,7 +18,7 @@ const withPWA = require('next-pwa')({
         cacheName: 'google-fonts-webfonts',
         expiration: {
           maxEntries: 4,
-          maxAgeSeconds: 365 * 24 * 60 * 60 // 365 days
+          maxAgeSeconds: 365 * 24 * 60 * 60
         }
       }
     },
@@ -29,7 +29,7 @@ const withPWA = require('next-pwa')({
         cacheName: 'google-fonts-stylesheets',
         expiration: {
           maxEntries: 4,
-          maxAgeSeconds: 7 * 24 * 60 * 60 // 7 days
+          maxAgeSeconds: 7 * 24 * 60 * 60
         }
       }
     },
@@ -40,7 +40,7 @@ const withPWA = require('next-pwa')({
         cacheName: 'next-image',
         expiration: {
           maxEntries: 60,
-          maxAgeSeconds: 24 * 60 * 60 // 24 hours
+          maxAgeSeconds: 24 * 60 * 60
         }
       }
     },
@@ -51,7 +51,7 @@ const withPWA = require('next-pwa')({
         cacheName: 'static-images',
         expiration: {
           maxEntries: 60,
-          maxAgeSeconds: 24 * 60 * 60 // 24 hours
+          maxAgeSeconds: 24 * 60 * 60
         }
       }
     }
@@ -64,7 +64,6 @@ const nextConfig = {
   swcMinify: true,
   poweredByHeader: false,
   
-  // Improved Image Optimization
   images: {
     domains: ['blackfish.digital'],
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
@@ -75,21 +74,17 @@ const nextConfig = {
     unoptimized: process.env.NODE_ENV === 'development',
   },
   
-  // Build Optimization
   compiler: {
     removeConsole: process.env.NODE_ENV === 'production',
     styledComponents: true,
   },
   
-  // Webpack Configuration
   webpack: (config, { dev, isServer }) => {
-    // SVG Optimization
     config.module.rules.push({
       test: /\.svg$/i,
       use: ['@svgr/webpack'],
     })
 
-    // Image Optimization
     config.module.rules.push({
       test: /\.(png|jpe?g|gif|webp)$/i,
       use: [
@@ -107,21 +102,15 @@ const nextConfig = {
       ],
     })
 
-    // Production Optimizations
     if (!dev) {
-      // Enable module concatenation
       config.optimization.concatenateModules = true
-      
-      // Deterministic chunk and module IDs
       config.optimization.moduleIds = 'deterministic'
       config.optimization.chunkIds = 'deterministic'
       
-      // Runtime chunk configuration
       config.optimization.runtimeChunk = {
         name: 'runtime',
       }
       
-      // Enhanced split chunks configuration
       config.optimization.splitChunks = {
         chunks: 'all',
         maxInitialRequests: 25,
@@ -141,10 +130,10 @@ const nextConfig = {
             priority: 30,
             chunks: 'all',
             name(module) {
-              const match = module.context.match(/[\\/]node_modules[\\/](.*?)([\\/]|$)/)
+              const match = module.context.match(/[\\/]node_modules[\\/](.*?)([\\]|$)/)
               if (match) {
                 const packageName = match[1].replace('@', '')
-                return `lib.${packageName.replace(/[\\/]/g, '.')}`
+                return `lib.${packageName.replace(/[\\/]/g, '.')}'
               }
               return 'lib'
             },
@@ -169,7 +158,6 @@ const nextConfig = {
         },
       }
 
-      // Compression
       if (!isServer) {
         config.optimization.minimize = true
       }
@@ -178,7 +166,6 @@ const nextConfig = {
     return config
   },
 
-  // Security Headers
   async headers() {
     return [
       {
@@ -234,7 +221,6 @@ const nextConfig = {
     ]
   },
 
-  // Redirects
   async redirects() {
     return [
       {
@@ -245,7 +231,6 @@ const nextConfig = {
     ]
   },
 
-  // Rewrites
   async rewrites() {
     return {
       beforeFiles: [],
@@ -259,12 +244,10 @@ const nextConfig = {
     }
   },
 
-  // Environment Variables
   env: {
     NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
   },
 
-  // Experimental Features
   experimental: {
     optimizeCss: true,
     legacyBrowsers: false,
@@ -276,16 +259,13 @@ const nextConfig = {
   },
 }
 
-// Sentry configuration
 const sentryWebpackPluginOptions = {
   silent: true,
 }
 
-// Apply plugins
 const config = () => {
   const plugins = [withBundleAnalyzer, withPWA]
   return plugins.reduce((acc, plugin) => plugin(acc), nextConfig)
 }
 
-// Export configuration with Sentry
 export default withSentryConfig(config(), sentryWebpackPluginOptions)
