@@ -5,6 +5,9 @@ import Link from 'next/link'
 import { useFormValidation } from '@/hooks/useFormValidation'
 import { Analytics } from '@/app/lib/analytics'
 import { cn } from '@/app/lib/utils'
+import { Form, Input, Textarea } from '@/app/components/ui/form'
+import { Alert } from '@/app/components/ui/Alert'
+import { Button } from '@/app/components/ui/Button'
 
 interface FormData {
   name: string;
@@ -49,33 +52,6 @@ const validationRules = {
     maxLength: 20
   }
 }
-
-interface ErrorWrapperProps {
-  children: React.ReactNode;
-  error?: string;
-  touched?: boolean;
-  id: string;
-}
-
-const ErrorWrapper = ({ children, error, touched, id }: ErrorWrapperProps) => (
-  <div className="relative">
-    {children}
-    <AnimatePresence>
-      {error && touched && (
-        <motion.p
-          id={`${id}-error`}
-          initial={{ opacity: 0, height: 0 }}
-          animate={{ opacity: 1, height: 'auto' }}
-          exit={{ opacity: 0, height: 0 }}
-          className="mt-2 text-sm text-red-400"
-          role="alert"
-        >
-          {error}
-        </motion.p>
-      )}
-    </AnimatePresence>
-  </div>
-)
 
 export default function ContactForm() {
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -188,199 +164,120 @@ export default function ContactForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6" noValidate>
+    <Form onSubmit={handleSubmit} noValidate>
       <AnimatePresence>
         {submitStatus === 'success' && (
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="bg-green-500/20 text-green-400 p-4 rounded-lg flex items-center gap-2"
+          <Alert 
+            variant="success"
+            title="Nachricht gesendet"
+            icon
+            animate
           >
-            <CheckCircle className="h-5 w-5 flex-shrink-0" />
-            <span>Ihre Nachricht wurde erfolgreich gesendet!</span>
-          </motion.div>
+            Ihre Nachricht wurde erfolgreich gesendet!
+          </Alert>
         )}
 
         {submitStatus === 'error' && (
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="bg-red-500/20 text-red-400 p-4 rounded-lg flex items-center gap-2"
+          <Alert 
+            variant="error"
+            title="Fehler"
+            icon
+            animate
           >
-            <AlertCircle className="h-5 w-5 flex-shrink-0" />
-            <span>Ein Fehler ist aufgetreten. Bitte versuchen Sie es später erneut.</span>
-          </motion.div>
+            Ein Fehler ist aufgetreten. Bitte versuchen Sie es später erneut.
+          </Alert>
         )}
       </AnimatePresence>
 
-      {/* Name & Email Row */}
-      <div className="grid gap-6 md:grid-cols-2">
-        <ErrorWrapper error={errors.name} touched={touched.name} id="name">
-          <input
-            type="text"
-            id="name"
+      <Form.Section>
+        <div className="grid gap-6 md:grid-cols-2">
+          <Input
             name="name"
-            placeholder="Name *"
+            label="Name"
             required
-            aria-required="true"
-            aria-invalid={errors.name ? "true" : "false"}
-            aria-describedby={errors.name ? "name-error" : undefined}
+            error={touched.name ? errors.name : undefined}
             value={values.name}
             onChange={handleChange}
             onBlur={handleBlur}
-            className={cn(
-              "w-full px-4 py-3 rounded-lg",
-              "bg-[#232942] border transition-all",
-              errors.name && touched.name ? "border-red-500" : "border-gray-700",
-              "text-white placeholder-gray-400",
-              "focus:outline-none focus:ring-2 focus:ring-blue-500"
-            )}
             disabled={isSubmitting}
           />
-        </ErrorWrapper>
 
-        <ErrorWrapper error={errors.email} touched={touched.email} id="email">
-          <input
+          <Input
             type="email"
-            id="email"
             name="email"
-            placeholder="Email *"
+            label="Email"
             required
-            aria-required="true"
-            aria-invalid={errors.email ? "true" : "false"}
-            aria-describedby={errors.email ? "email-error" : undefined}
+            error={touched.email ? errors.email : undefined}
             value={values.email}
             onChange={handleChange}
             onBlur={handleBlur}
-            className={cn(
-              "w-full px-4 py-3 rounded-lg",
-              "bg-[#232942] border transition-all",
-              errors.email && touched.email ? "border-red-500" : "border-gray-700",
-              "text-white placeholder-gray-400",
-              "focus:outline-none focus:ring-2 focus:ring-blue-500"
-            )}
             disabled={isSubmitting}
           />
-        </ErrorWrapper>
-      </div>
+        </div>
 
-      {/* Subject */}
-      <ErrorWrapper error={errors.subject} touched={touched.subject} id="subject">
-        <input
-          type="text"
-          id="subject"
+        <Input
           name="subject"
-          placeholder="Betreff *"
+          label="Betreff"
           required
-          aria-required="true"
-          aria-invalid={errors.subject ? "true" : "false"}
-          aria-describedby={errors.subject ? "subject-error" : undefined}
+          error={touched.subject ? errors.subject : undefined}
           value={values.subject}
           onChange={handleChange}
           onBlur={handleBlur}
-          className={cn(
-            "w-full px-4 py-3 rounded-lg",
-            "bg-[#232942] border transition-all",
-            errors.subject && touched.subject ? "border-red-500" : "border-gray-700",
-            "text-white placeholder-gray-400",
-            "focus:outline-none focus:ring-2 focus:ring-blue-500"
-          )}
           disabled={isSubmitting}
         />
-      </ErrorWrapper>
 
-      {/* Phone (Optional) */}
-      <ErrorWrapper error={errors.phone} touched={touched.phone} id="phone">
-        <input
+        <Input
           type="tel"
-          id="phone"
           name="phone"
-          placeholder="Telefon (optional)"
-          aria-invalid={errors.phone ? "true" : "false"}
-          aria-describedby={errors.phone ? "phone-error" : undefined}
+          label="Telefon (optional)"
+          error={touched.phone ? errors.phone : undefined}
           value={values.phone}
           onChange={handleChange}
           onBlur={handleBlur}
-          className={cn(
-            "w-full px-4 py-3 rounded-lg",
-            "bg-[#232942] border transition-all",
-            errors.phone && touched.phone ? "border-red-500" : "border-gray-700",
-            "text-white placeholder-gray-400",
-            "focus:outline-none focus:ring-2 focus:ring-blue-500"
-          )}
           disabled={isSubmitting}
         />
-      </ErrorWrapper>
 
-      {/* Message */}
-      <ErrorWrapper error={errors.message} touched={touched.message} id="message">
-        <textarea
-          id="message"
+        <Textarea
           name="message"
-          placeholder="Ihre Nachricht *"
+          label="Ihre Nachricht"
           required
-          aria-required="true"
-          aria-invalid={errors.message ? "true" : "false"}
-          aria-describedby={errors.message ? "message-error" : undefined}
+          rows={4}
+          error={touched.message ? errors.message : undefined}
           value={values.message}
           onChange={handleChange}
           onBlur={handleBlur}
-          rows={4}
-          className={cn(
-            "w-full px-4 py-3 rounded-lg",
-            "bg-[#232942] border transition-all",
-            errors.message && touched.message ? "border-red-500" : "border-gray-700",
-            "text-white placeholder-gray-400",
-            "focus:outline-none focus:ring-2 focus:ring-blue-500",
-            "resize-y"
-          )}
           disabled={isSubmitting}
         />
-      </ErrorWrapper>
+      </Form.Section>
 
-      {/* Submit Button */}
-      <motion.button
-        whileHover={{ scale: 1.02 }}
-        whileTap={{ scale: 0.98 }}
-        type="submit"
-        disabled={isSubmitting}
-        className={cn(
-          "w-full flex items-center justify-center gap-2",
-          "rounded-lg bg-blue-500 px-6 py-3 text-white",
-          "hover:bg-blue-600 transition-colors",
-          "disabled:opacity-50 disabled:cursor-not-allowed",
-          "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-        )}
-      >
-        {isSubmitting ? (
-          <Loader2 className="h-5 w-5 animate-spin" />
-        ) : (
-          <>
-            <Send className="h-5 w-5" />
-            Nachricht senden
-          </>
-        )}
-      </motion.button>
-
-      {/* Privacy Policy Link */}
-      <p className="text-sm text-gray-400 text-center">
-        Mit dem Absenden stimmen Sie unserer{' '}
-        <Link 
-          href="/datenschutz" 
-          className="text-blue-400 hover:text-blue-300 transition-colors"
-          onClick={() => {
-            Analytics.event({
-              action: 'privacy_policy_click',
-              category: 'Contact'
-            })
-          }}
+      <Form.Actions>
+        <Button
+          type="submit"
+          disabled={isSubmitting}
+          isLoading={isSubmitting}
+          leftIcon={!isSubmitting && <Send className="h-5 w-5" />}
+          className="w-full"
         >
-          Datenschutzerklärung
-        </Link>{' '}
-        zu.
-      </p>
-    </form>
+          Nachricht senden
+        </Button>
+
+        <p className="text-sm text-gray-400 text-center mt-4">
+          Mit dem Absenden stimmen Sie unserer{' '}
+          <Link 
+            href="/datenschutz" 
+            className="text-blue-400 hover:text-blue-300 transition-colors"
+            onClick={() => {
+              Analytics.event({
+                action: 'privacy_policy_click',
+                category: 'Contact'
+              })
+            }}
+          >
+            Datenschutzerklärung
+          </Link>{' '}
+          zu.
+        </p>
+      </Form.Actions>
+    </Form>
   )
 }
