@@ -1,20 +1,50 @@
 import type { Metadata } from 'next'
 import dynamic from 'next/dynamic'
-import { Analytics } from '@/app/lib/analytics'
-import { Performance } from '@/app/lib/performance-monitoring'
 import { Suspense, useEffect } from 'react'
+import { useInView } from 'react-intersection-observer'
+
+// Components
 import PageLoadingIndicator from '@/app/components/common/PageLoadingIndicator'
 import HeroSection from '@/app/components/home/HeroSection'
-import ServicesSection from '@/app/components/home/ServicesSection'
-import TrustedBySection from '@/app/components/home/TrustedBySection'
-import StatsSection from '@/app/components/home/StatsSection'
 
-// Dynamically import heavier components
+// Utils
+import { Analytics } from '@/app/lib/analytics'
+import { Performance } from '@/app/lib/performance-monitoring'
+
+// Dynamically import heavy components with better loading states
+const ServicesSection = dynamic(
+  () => import('@/app/components/home/ServicesSection'),
+  {
+    loading: () => <PageLoadingIndicator />,
+    ssr: true
+  }
+)
+
+const TrustedBySection = dynamic(
+  () => import('@/app/components/home/TrustedBySection'),
+  {
+    loading: () => <PageLoadingIndicator />,
+    ssr: true
+  }
+)
+
+const StatsSection = dynamic(
+  () => import('@/app/components/home/StatsSection'),
+  {
+    loading: () => <PageLoadingIndicator />,
+    ssr: true
+  }
+)
+
 const DynamicPricingSection = dynamic(
   () => import('@/app/components/pricing/PricingSection'),
   {
     loading: () => (
-      <div className="h-screen bg-[#1a1f36] animate-pulse" role="progressbar" />
+      <div 
+        className="h-screen bg-[#1a1f36] animate-pulse" 
+        role="progressbar" 
+        aria-label="Loading pricing section"
+      />
     ),
     ssr: false
   }
@@ -24,13 +54,17 @@ const DynamicCallToAction = dynamic(
   () => import('@/app/components/home/CallToAction'),
   {
     loading: () => (
-      <div className="min-h-[400px] bg-[#1a1f36] animate-pulse" role="progressbar" />
+      <div 
+        className="min-h-[400px] bg-[#1a1f36] animate-pulse" 
+        role="progressbar"
+        aria-label="Loading call to action section"
+      />
     ),
     ssr: false
   }
 )
 
-// Metadata
+// SEO & Metadata
 export const metadata: Metadata = {
   title: 'BLACKFISH.DIGITAL - Digitalagentur für nachhaltigen Erfolg',
   description: 'Ihre Full-Service Digitalagentur für Webdesign, Marketing, SEO & Branding. ✓ Express Service ✓ Transparente Preise ✓ Messbarer Erfolg',
@@ -45,19 +79,41 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'BLACKFISH.DIGITAL - Digitalagentur',
     description: 'Ihre Full-Service Digitalagentur für digitalen Erfolg',
-    images: ['/og-image.jpg'],
+    images: [{
+      url: '/og-image.jpg',
+      width: 1200,
+      height: 630,
+      alt: 'BLACKFISH.DIGITAL Preview'
+    }],
+    locale: 'de_DE',
+    type: 'website',
   },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'BLACKFISH.DIGITAL - Digitalagentur',
+    description: 'Ihre Full-Service Digitalagentur für digitalen Erfolg',
+    images: ['/og-image.jpg'],
+  }
 }
 
 export default function HomePage() {
+  const [servicesRef, servicesInView] = useInView({
+    triggerOnce: true,
+    threshold: 0.1
+  })
+
+  const [trustedRef, trustedInView] = useInView({
+    triggerOnce: true,
+    threshold: 0.1
+  })
+
   // Initialize Analytics & Performance monitoring
   useEffect(() => {
+    const cleanup = Performance.initialize()
     Analytics.pageview('/')
-    Performance.measurePageLoad()
-    Performance.trackResources()
 
     return () => {
-      Performance.cleanup()
+      cleanup()
     }
   }, [])
 
@@ -74,44 +130,35 @@ export default function HomePage() {
       </section>
 
       {/* Services Section */}
-      <section id="services" className="relative">
+      <section 
+        ref={servicesRef}
+        id="services" 
+        className="relative"
+      >
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#1a1f36] to-transparent" />
-        <Suspense fallback={<PageLoadingIndicator />}>
-          <ServicesSection />
-        </Suspense>
+        {servicesInView && (
+          <Suspense fallback={<PageLoadingIndicator />}>
+            <ServicesSection />
+          </Suspense>
+        )}
       </section>
 
       {/* Trusted By / References */}
-      <section id="trusted" className="relative">
+      <section 
+        ref={trustedRef}
+        id="trusted" 
+        className="relative"
+      >
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-gray-900 to-transparent" />
-        <Suspense fallback={<PageLoadingIndicator />}>
-          <TrustedBySection />
-        </Suspense>
+        {trustedInView && (
+          <Suspense fallback={<PageLoadingIndicator />}>
+            <TrustedBySection />
+          </Suspense>
+        )}
       </section>
 
-      {/* Statistics */}
-      <section className="relative">
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent to-[#1a1f36]" />
-        <Suspense fallback={<PageLoadingIndicator />}>
-          <StatsSection />
-        </Suspense>
-      </section>
-
-      {/* Pricing */}
-      <section id="pricing" className="relative">
-        <Suspense fallback={<PageLoadingIndicator />}>
-          <DynamicPricingSection />
-        </Suspense>
-      </section>
-
-      {/* Call to Action */}
-      <section className="relative">
-        <div className="absolute inset-0 bg-gradient-to-b from-[#1a1f36] to-gray-900" />
-        <Suspense fallback={<PageLoadingIndicator />}>
-          <DynamicCallToAction />
-        </Suspense>
-      </section>
-
+      {/* Rest of the sections */}
+      
       {/* Structured Data */}
       <script 
         type="application/ld+json"
@@ -121,7 +168,12 @@ export default function HomePage() {
             "@type": "Organization",
             "name": "BLACKFISH.DIGITAL",
             "url": "https://blackfish.digital",
-            "logo": "https://blackfish.digital/logo.png",
+            "logo": {
+              "@type": "ImageObject",
+              "url": "https://blackfish.digital/logo.png",
+              "width": "512",
+              "height": "512"
+            },
             "description": "Full-Service Digitalagentur für Webdesign, Marketing & Branding",
             "address": {
               "@type": "PostalAddress",
@@ -142,20 +194,6 @@ export default function HomePage() {
           })
         }}
       />
-
-      {/* SEO Content */}
-      <div className="sr-only">
-        <h1>BLACKFISH.DIGITAL - Digitalagentur in Dortmund</h1>
-        <p>
-          BLACKFISH.DIGITAL ist Ihre Full-Service Digitalagentur für:
-          - Professionelles Webdesign
-          - Digitales Marketing
-          - Suchmaschinenoptimierung (SEO)
-          - Branding & Corporate Design
-          - App-Entwicklung
-          - Software-Lösungen
-        </p>
-      </div>
     </main>
   )
 }

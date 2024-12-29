@@ -1,24 +1,83 @@
-import { useEffect, memo } from 'react'
-import { motion, useAnimation } from 'framer-motion'
+import { useEffect, useCallback, memo } from 'react'
+import { motion, useAnimation, useReducedMotion } from 'framer-motion'
 import { Analytics } from '@/app/lib/analytics'
 import { cn } from '@/app/lib/utils'
+import { useProgressRing } from '@/hooks/useProgressRing'
 
 interface PageLoadingIndicatorProps {
   message?: string;
   duration?: number;
   onLoadingComplete?: () => void;
+  showProgressRing?: boolean;
 }
 
-export default memo(function PageLoadingIndicator({
+const DEFAULT_DURATION = 2;
+const LOADING_TIMEOUT = 10000; // 10 seconds timeout
+
+const LoadingRing = memo(({ progress }: { progress: number }) => (
+  <svg
+    className="absolute inset-0 w-16 h-16"
+    viewBox="0 0 100 100"
+    aria-hidden="true"
+  >
+    <circle
+      className="text-gray-700"
+      strokeWidth="4"
+      stroke="currentColor"
+      fill="transparent"
+      r="48"
+      cx="50"
+      cy="50"
+    />
+    <motion.circle
+      className="text-blue-500"
+      strokeWidth="4"
+      stroke="currentColor"
+      fill="transparent"
+      r="48"
+      cx="50"
+      cy="50"
+      style={{
+        pathLength: progress,
+        rotate: '-90deg',
+        transformOrigin: '50% 50%'
+      }}
+    />
+  </svg>
+));
+
+LoadingRing.displayName = 'LoadingRing';
+
+function PageLoadingIndicator({
   message = 'Loading...',
-  duration = 2,
-  onLoadingComplete
+  duration = DEFAULT_DURATION,
+  onLoadingComplete,
+  showProgressRing = true
 }: PageLoadingIndicatorProps) {
-  // Animation controls
+  const prefersReducedMotion = useReducedMotion()
   const circleControls = useAnimation()
   const textControls = useAnimation()
+  
+  const { progress, startProgress, stopProgress } = useProgressRing({
+    duration: duration * 1000
+  })
+
+  const handleLoadingComplete = useCallback(() => {
+    Analytics.event({
+      action: 'loading_complete',
+      category: 'UI',
+      value: duration
+    })
+
+    if (onLoadingComplete) {
+      onLoadingComplete()
+    }
+  }, [duration, onLoadingComplete])
 
   useEffect(() => {
+    let timeoutId: NodeJS.Timeout
+    let animationStartTime = Date.now()
+
     // Track loading start
     Analytics.event({
       action: 'loading_start',
@@ -28,35 +87,64 @@ export default memo(function PageLoadingIndicator({
 
     // Start animations
     const startAnimations = async () => {
-      // Animate circle
-      await circleControls.start({
-        scale: [1, 1.2, 1],
-        rotate: [0, 180, 360],
-        transition: {
-          duration,
-          repeat: Infinity,
-          ease: "easeInOut"
-        }
-      })
+      if (prefersReducedMotion) {
+        // Simplified animations for users who prefer reduced motion
+        await Promise.all([
+          circleControls.start({ opacity: 0.8 }),
+          textControls.start({ opacity: 0.8 })
+        ])
+      } else {
+        // Full animations
+        await Promise.all([
+          circleControls.start({
+            scale: [1, 1.1, 1],
+            rotate: 360,
+            transition: {
+              duration: duration,
+              repeat: Infinity,
+              ease: "easeInOut",
+              times: [0, 0.5, 1]
+            }
+          }),
+          textControls.start({
+            opacity: [0.6, 1, 0.6],
+            transition: {
+              duration: 1.5,
+              repeat: Infinity,
+              ease: "easeInOut"
+            }
+          })
+        ])
+      }
     }
 
+    // Start animations and progress
     startAnimations()
+    if (showProgressRing) {
+      startProgress()
+    }
 
-    // Track loading time
-    const loadingTimeout = setTimeout(() => {
+    // Set up loading timeout
+    timeoutId = setTimeout(() => {
+      const loadingTime = Date.now() - animationStartTime
+      
       Analytics.event({
         action: 'loading_timeout',
         category: 'Error',
-        value: duration
+        value: loadingTime,
+        label: `Timeout after ${loadingTime}ms`
       })
-    }, duration * 1000 * 2) // Double the animation duration
+
+      handleLoadingComplete()
+    }, LOADING_TIMEOUT)
 
     return () => {
-      clearTimeout(loadingTimeout)
+      clearTimeout(timeoutId)
       circleControls.stop()
       textControls.stop()
+      stopProgress()
     }
-  }, [circleControls, textControls, duration])
+  }, [circleControls, textControls, duration, prefersReducedMotion, handleLoadingComplete, showProgressRing, startProgress, stopProgress])
 
   return (
     <div
@@ -65,100 +153,48 @@ export default memo(function PageLoadingIndicator({
       className={cn(
         "fixed inset-0 z-50",
         "flex items-center justify-center",
-        "bg-[#1a1f36]/90 backdrop-blur-sm"
+        "bg-gray-900/90 backdrop-blur-sm",
+        "transition-opacity duration-200"
       )}
     >
-      <div className="relative">
-        {/* Logo Animation */}
-        <motion.div
-          animate={circleControls}
-          className={cn(
-            "w-16 h-16",
-            "border-2 border-blue-500 rounded-full"
+      <div className="relative flex flex-col items-center">
+        {/* Loading Animation */}
+        <div className="relative w-16 h-16">
+          {/* Spinning Circle */}
+          <motion.div
+            animate={circleControls}
+            className={cn(
+              "absolute inset-0",
+              "border-2 border-blue-500 rounded-full"
+            )}
+          />
+
+          {/* Progress Ring */}
+          {showProgressRing && (
+            <LoadingRing progress={progress} />
           )}
-        />
-        
-        {/* Loading Circle */}
-        <motion.div
-          animate={{
-            rotate: 360
-          }}
-          transition={{
-            duration: 1.5,
-            repeat: Infinity,
-            ease: "linear"
-          }}
-          className={cn(
-            "absolute inset-0",
-            "border-t-2 border-white rounded-full"
-          )}
-        />
+        </div>
 
         {/* Loading Text */}
         <motion.p
-          animate={{
-            opacity: [0.5, 1, 0.5]
-          }}
-          transition={{
-            duration: 2,
-            repeat: Infinity,
-            ease: "easeInOut"
-          }}
+          animate={textControls}
           className={cn(
-            "absolute -bottom-8 left-1/2 -translate-x-1/2",
-            "text-white font-medium"
+            "mt-4 text-white font-medium",
+            "text-sm sm:text-base"
           )}
         >
           {message}
         </motion.p>
 
-        {/* Screen Reader Only Text */}
+        {/* Screen Reader Text */}
         <span className="sr-only">
-          Page is loading. Please wait.
+          Seite wird geladen. Bitte warten.
+          {showProgressRing && `Fortschritt: ${Math.round(progress * 100)}%`}
         </span>
-
-        {/* Progress Ring (optional) */}
-        <svg
-          className="absolute inset-0 w-16 h-16"
-          viewBox="0 0 100 100"
-          aria-hidden="true"
-        >
-          <circle
-            className="text-gray-700"
-            strokeWidth="4"
-            stroke="currentColor"
-            fill="transparent"
-            r="48"
-            cx="50"
-            cy="50"
-          />
-          <motion.circle
-            className="text-blue-500"
-            strokeWidth="4"
-            stroke="currentColor"
-            fill="transparent"
-            r="48"
-            cx="50"
-            cy="50"
-            style={{
-              strokeDasharray: "301.59289474462014",
-              strokeDashoffset: "301.59289474462014",
-              rotate: "-90deg",
-              transformOrigin: "50% 50%"
-            }}
-            animate={{
-              strokeDashoffset: [301.59289474462014, 0]
-            }}
-            transition={{
-              duration: duration,
-              ease: "linear",
-              repeat: Infinity
-            }}
-          />
-        </svg>
       </div>
     </div>
   )
-})
+}
 
-PageLoadingIndicator.displayName = 'PageLoadingIndicator'
+// Performance Optimization durch Memoization
+export default memo(PageLoadingIndicator);

@@ -1,3 +1,5 @@
+'use client';
+
 import { motion, AnimatePresence } from 'framer-motion'
 import { useState, useEffect } from 'react'
 import { Settings, X, Shield, ChartBar, Target } from 'lucide-react'
@@ -198,7 +200,7 @@ export default function CookieBanner() {
                           )}/>
                           <div className={cn(
                             "absolute left-1 top-1 w-4 h-4 bg-white rounded-full transition-all",
-                            "peer-checked:left-6"
+                            "peer-checked:translate-x-5 peer-focus:ring-2 peer-focus:ring-blue-500"
                           )}/>
                         </div>
                       </div>

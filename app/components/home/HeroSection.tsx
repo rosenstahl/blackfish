@@ -1,11 +1,35 @@
-import { useCallback, useEffect } from 'react'
-import { motion, useAnimation } from 'framer-motion'
+import { useCallback, useEffect, memo } from 'react'
+import { motion, useAnimation, useReducedMotion } from 'framer-motion'
 import { ArrowRight, Rocket, BarChart, Shield } from 'lucide-react'
 import { useInView } from 'react-intersection-observer'
 import { Analytics } from '@/app/lib/analytics'
 import { cn } from '@/app/lib/utils'
 import { scrollToSection } from '@/app/utils/navigation'
-import FeatureCard from './FeatureCard'
+
+// Memoized Feature Card Component
+const FeatureCard = memo(({ icon: Icon, title, description, className, delay }: {
+  icon: typeof Rocket;
+  title: string;
+  description: string;
+  className: string;
+  delay: number;
+}) => (
+  <div 
+    className={cn(
+      "relative overflow-hidden rounded-2xl p-6",
+      "backdrop-blur-lg transition-all duration-300 hover:scale-[1.02]",
+      className
+    )}
+    role="article"
+  >
+    <div className="absolute inset-0 bg-gradient-to-b from-white/10 to-transparent opacity-20" />
+    <Icon className="h-8 w-8 text-white mb-4" />
+    <h3 className="text-lg font-semibold text-white mb-2">{title}</h3>
+    <p className="text-gray-200">{description}</p>
+  </div>
+));
+
+FeatureCard.displayName = 'FeatureCard';
 
 const features = [
   {
@@ -31,18 +55,21 @@ const features = [
   }
 ]
 
-export default function HeroSection() {
+function HeroSection() {
   const controls = useAnimation()
+  const prefersReducedMotion = useReducedMotion()
   const [ref, inView] = useInView({
     threshold: 0.1,
     triggerOnce: true
   })
 
   useEffect(() => {
-    if (inView) {
+    if (inView && !prefersReducedMotion) {
       controls.start('visible')
+    } else {
+      controls.set('visible') // Sofort anzeigen wenn Animationen deaktiviert
     }
-  }, [controls, inView])
+  }, [controls, inView, prefersReducedMotion])
 
   const trackCTAClick = useCallback((action: string) => {
     Analytics.event({
@@ -52,42 +79,66 @@ export default function HeroSection() {
     })
   }, [])
 
-  // Animation variants
+  // Performance-optimierte Animation Variants
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
       transition: {
-        staggerChildren: 0.2
+        staggerChildren: 0.1,
+        delayChildren: 0.1,
+        type: 'tween', // Verwendung von tween statt spring für bessere Performance
       }
     }
   }
 
   const itemVariants = {
     hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0 }
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        type: 'tween',
+        duration: 0.5,
+        ease: 'easeOut'
+      }
+    }
   }
 
   return (
-    <section ref={ref} id="hero" className="relative min-h-screen flex items-center">
-      {/* Animated Background */}
-      <div className="absolute inset-0">
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#4f4f4f2e_1px,transparent_1px),linear-gradient(to_bottom,#4f4f4f2e_1px,transparent_1px)] bg-[size:14px_24px]" />
+    <section 
+      ref={ref} 
+      id="hero" 
+      className="relative min-h-screen flex items-center"
+      aria-label="Hero Section"
+    >
+      {/* Optimierte Hintergrund-Animation */}
+      <div className="absolute inset-0 -z-10">
+        <div 
+          className="absolute inset-0" 
+          style={{
+            backgroundImage: 'linear-gradient(to right, #4f4f4f2e 1px, transparent 1px), linear-gradient(to bottom, #4f4f4f2e 1px, transparent 1px)',
+            backgroundSize: '14px 24px'
+          }}
+          aria-hidden="true"
+        />
         <motion.div
-          initial={{ opacity: 0 }}
+          initial={{ opacity: 0.05 }}
           animate={{ 
-            opacity: [0.05, 0.1, 0.05],
-            transition: {
-              duration: 5,
-              repeat: Infinity,
-              repeatType: "reverse"
-            }
+            opacity: [0.05, 0.1, 0.05]
+          }}
+          transition={{
+            duration: 5,
+            repeat: Infinity,
+            repeatType: "reverse",
+            ease: 'linear'
           }}
           className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-purple-500/10"
+          aria-hidden="true"
         />
       </div>
 
-      <div className="container relative mx-auto px-4 py-20">
+      <div className="container mx-auto px-4 py-20">
         <div className="grid gap-12 md:grid-cols-2 md:items-center">
           {/* Text Content */}
           <motion.div 
@@ -108,7 +159,7 @@ export default function HeroSection() {
             
             <motion.p 
               variants={itemVariants}
-              className="mb-8 text-xl text-gray-300 leading-relaxed"
+              className="mb-8 text-xl text-gray-300 leading-relaxed max-w-2xl"
             >
               Von der Strategie bis zur Umsetzung - Ihr Partner für digitalen Erfolg und 
               messbares Wachstum
@@ -123,40 +174,43 @@ export default function HeroSection() {
                   scrollToSection('pricing')
                   trackCTAClick('pricing')
                 }}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
+                whileHover={prefersReducedMotion ? {} : { scale: 1.02 }}
+                whileTap={prefersReducedMotion ? {} : { scale: 0.98 }}
                 className={cn(
                   "group flex items-center gap-2 rounded-full",
                   "bg-gradient-to-r from-blue-500 to-blue-600 px-8 py-3.5",
-                  "text-white shadow-lg transition-all",
+                  "text-white shadow-lg transition-all duration-300",
                   "hover:from-blue-600 hover:to-blue-700 hover:shadow-xl",
                   "w-full md:w-auto justify-center font-medium",
-                  "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                  "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2",
+                  "disabled:opacity-50 disabled:cursor-not-allowed"
                 )}
+                aria-label="Pakete entdecken und Preise ansehen"
               >
                 Pakete entdecken
-                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" aria-hidden="true" />
               </motion.button>
               
               <motion.a 
                 href="/contact"
                 onClick={() => trackCTAClick('contact')}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
+                whileHover={prefersReducedMotion ? {} : { scale: 1.02 }}
+                whileTap={prefersReducedMotion ? {} : { scale: 0.98 }}
                 className={cn(
                   "flex items-center justify-center gap-2",
                   "rounded-full border border-white/20 px-8 py-3.5",
-                  "text-white transition-all hover:bg-white/10",
+                  "text-white transition-all duration-300 hover:bg-white/10",
                   "w-full md:w-auto font-medium backdrop-blur-sm",
                   "focus:outline-none focus:ring-2 focus:ring-white/20 focus:ring-offset-2"
                 )}
+                aria-label="Kostenloses Beratungsgespräch vereinbaren"
               >
                 Beratungsgespräch vereinbaren
               </motion.a>
             </motion.div>
           </motion.div>
 
-          {/* Feature Cards */}
+          {/* Feature Cards with Optimized Rendering */}
           <div className="grid grid-cols-2 gap-4 md:gap-6">
             {features.map((feature, index) => (
               <motion.div
@@ -165,7 +219,7 @@ export default function HeroSection() {
                 initial="hidden"
                 animate={controls}
                 custom={index}
-                transition={{ delay: feature.delay }}
+                transition={{ delay: prefersReducedMotion ? 0 : feature.delay }}
                 className={index === 2 ? "col-span-2 md:col-span-1" : ""}
               >
                 <FeatureCard {...feature} />
@@ -175,14 +229,17 @@ export default function HeroSection() {
         </div>
       </div>
 
-      {/* SEO and Accessibility Enhancements */}
+      {/* SEO and Structured Data */}
       <div className="sr-only">
         <h2>BLACKFISH.DIGITAL - Ihre Full-Service Digitalagentur</h2>
         <p>
           Professionelle Webentwicklung, Digitales Marketing und Branding.
-          Individuelle Lösungen für Ihren digitalen Erfolg.
+          Individuelle Lösungen für Ihren digitalen Erfolg mit messbarem ROI.
         </p>
       </div>
     </section>
   )
 }
+
+// Performance Optimization durch Memoization
+export default memo(HeroSection)
