@@ -14,13 +14,15 @@ const customJestConfig = {
   moduleDirectories: ['node_modules', '<rootDir>'],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/$1',
-    '^@components/(.*)$': '<rootDir>/components/$1',
-    '^@lib/(.*)$': '<rootDir>/lib/$1',
-    '^@hooks/(.*)$': '<rootDir>/hooks/$1',
-    '^@context/(.*)$': '<rootDir>/context/$1',
-    '^@utils/(.*)$': '<rootDir>/utils/$1',
+    '^@components/(.*)$': '<rootDir>/app/components/$1',
+    '^@lib/(.*)$': '<rootDir>/app/lib/$1',
+    '^@hooks/(.*)$': '<rootDir>/app/hooks/$1',
+    '^@context/(.*)$': '<rootDir>/app/context/$1',
+    '^@utils/(.*)$': '<rootDir>/app/utils/$1',
+    '^@styles/(.*)$': '<rootDir>/app/styles/$1',
+    '^@types/(.*)$': '<rootDir>/app/types/$1',
     '\\.(css|less|scss|sass)$': 'identity-obj-proxy',
-    '\\.(gif|ttf|eot|svg|png|jpg|jpeg)$': '<rootDir>/__mocks__/fileMock.js'
+    '\\.(gif|ttf|eot|svg|png|jpg|jpeg|webp)$': '<rootDir>/__mocks__/fileMock.js'
   },
 
   // Test Files Pattern
@@ -31,12 +33,13 @@ const customJestConfig = {
   
   // Coverage Configuration
   collectCoverageFrom: [
-    '**/*.{js,jsx,ts,tsx}',
+    'app/**/*.{js,jsx,ts,tsx}',
     '!**/*.d.ts',
     '!**/node_modules/**',
     '!**/.next/**',
     '!**/coverage/**',
     '!**/__tests__/**',
+    '!**/__mocks__/**',
     '!**/jest.config.js',
     '!**/jest.setup.ts',
   ],
@@ -47,22 +50,33 @@ const customJestConfig = {
       lines: 80,
       statements: 80,
     },
-    './components/': {
+    './app/components/': {
       branches: 90,
       functions: 90,
       lines: 90,
       statements: 90,
     }
   },
+  coverageReporters: [
+    'json',
+    'lcov',
+    'text',
+    'clover',
+    'cobertura'
+  ],
   
   // Performance Optimization
   maxWorkers: '50%',
   maxConcurrency: 5,
+  detectOpenHandles: true,
+  detectLeaks: true,
   
   // Test Utilities
   watchPlugins: [
     'jest-watch-typeahead/filename',
     'jest-watch-typeahead/testname',
+    'jest-watch-select-projects',
+    'jest-watch-suspend',
   ],
   
   // Reporter Configuration
@@ -75,6 +89,14 @@ const customJestConfig = {
       titleTemplate: '{title}',
       ancestorSeparator: ' › ',
       usePathForSuiteName: true,
+      addFileAttribute: true,
+      reportTestSuiteErrors: true,
+    }],
+    ['jest-html-reporter', {
+      pageTitle: 'Test Report',
+      outputPath: 'coverage/test-report.html',
+      includeFailureMsg: true,
+      includeSuiteFailure: true,
     }],
   ],
   
@@ -84,13 +106,17 @@ const customJestConfig = {
   clearMocks: true,
   restoreMocks: true,
   resetMocks: true,
+  errorOnDeprecated: true,
+  notify: true,
+  notifyMode: 'failure-change',
   
   // Transform Configuration
   transform: {
     '^.+\\.(js|jsx|ts|tsx)$': ['babel-jest', { presets: ['next/babel'] }],
+    '^.+\\.module\\.(css|sass|scss)$': 'jest-css-modules-transform',
   },
   transformIgnorePatterns: [
-    '/node_modules/',
+    '/node_modules/(?!(@.*)/).+\.js$',
     '^.+\\.module\\.(css|sass|scss)$',
   ],
   
@@ -99,7 +125,16 @@ const customJestConfig = {
     'ts-jest': {
       tsconfig: '<rootDir>/tsconfig.test.json',
       diagnostics: false,
+      isolatedModules: true,
     },
+    'jest-runner': {
+      showMultipleWorkerWarning: true,
+    },
+  },
+
+  // Environment Variables
+  testEnvironmentOptions: {
+    url: 'http://localhost:3000',
   },
 }
 
