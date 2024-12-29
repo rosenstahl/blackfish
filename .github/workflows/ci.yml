@@ -86,7 +86,7 @@ jobs:
           files: ./coverage/coverage-final.json
       
       - name: Upload test results
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: test-results
           path: coverage/
@@ -132,7 +132,7 @@ jobs:
         run: npm run test:e2e
       
       - name: Upload Playwright results
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: playwright-results
           path: test-results/
@@ -166,7 +166,7 @@ jobs:
           LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}
       
       - name: Upload Lighthouse results
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: lighthouse-results
           path: .lighthouseci/
