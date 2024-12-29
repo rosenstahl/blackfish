@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1.4
 
 # Base image with common settings
-FROM node:18-alpine AS base
+FROM node:23-alpine AS base
 
 # Install additional dependencies
 RUN apk add --no-cache \
