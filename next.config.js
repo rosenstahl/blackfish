@@ -8,6 +8,9 @@ const nextConfig = {
     formats: ['image/avif', 'image/webp'],
     remotePatterns: []
   },
+  async rewrites() {
+    return []
+  },
   async headers() {
     return [
       {
