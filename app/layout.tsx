@@ -1,6 +1,5 @@
 // app/layout.tsx
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
 import "./globals.css";
 
 // Components
@@ -18,15 +17,18 @@ import { Providers } from './providers/Providers';
 // Config & Utils
 import defaultMetadata from "@/app/lib/metadata";
 import { getOrganizationSchema } from '@/app/lib/schema';
-
-// Font Configuration
-const inter = Inter({ 
-  subsets: ["latin"],
-  display: 'swap'
-});
+import { inter, fontVariables } from '@/app/fonts/fonts';
 
 // Metadata Configuration
-export const metadata: Metadata = defaultMetadata;
+export const metadata: Metadata = {
+  ...defaultMetadata,
+  viewport: {
+    width: 'device-width',
+    initialScale: 1,
+    viewportFit: 'cover',
+    themeColor: [{ media: '(prefers-color-scheme: dark)', color: '#1a1a1a' }],
+  },
+};
 
 export default function RootLayout({
   children,
@@ -34,7 +36,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="de" className="scroll-smooth">
+    <html 
+      lang="de" 
+      className={`scroll-smooth ${fontVariables}`}
+      suppressHydrationWarning
+    >
       <head>
         <script
           type="application/ld+json"
@@ -42,10 +48,16 @@ export default function RootLayout({
             __html: JSON.stringify(getOrganizationSchema())
           }}
         />
-        <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+        <link
+          rel="preload"
+          href="/fonts/Inter-roman.var.woff2"
+          as="font"
+          type="font/woff2"
+          crossOrigin="anonymous"
+        />
       </head>
       <body 
-        className={`${inter.className} bg-gray-900 text-white antialiased min-h-screen`}
+        className={`bg-gray-900 text-white antialiased min-h-screen selection:bg-primary-200 selection:text-primary-900`}
       >
         <Providers>
           <GlobalErrorBoundary>
