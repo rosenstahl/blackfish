@@ -1,8 +1,30 @@
+const MOBILE_THROTTLING = {
+  rttMs: 150,
+  throughputKbps: 1638.4,
+  requestLatencyMs: 562.5,
+  downloadThroughputKbps: 1474.56,
+  uploadThroughputKbps: 675.84,
+  cpuSlowdownMultiplier: 4
+}
+
+const DESKTOP_THROTTLING = {
+  rttMs: 40,
+  throughputKbps: 10240,
+  requestLatencyMs: 0,
+  downloadThroughputKbps: 10240,
+  uploadThroughputKbps: 10240,
+  cpuSlowdownMultiplier: 1
+}
+
 module.exports = {
   ci: {
     collect: {
-      // Server und URL Konfiguration
+      // Server und URL Configuration
       startServerCommand: 'npm run start',
+      startServerReadyPattern: 'ready started server',
+      startServerReadyTimeout: 30000,
+      maxAutodiscoverUrls: 20,
+      numberOfRuns: 3,
       url: [
         'http://localhost:3000',
         'http://localhost:3000/contact',
@@ -10,18 +32,10 @@ module.exports = {
         'http://localhost:3000/datenschutz',
         'http://localhost:3000/agb'
       ],
-      numberOfRuns: 3,
       settings: {
         preset: 'desktop',
-        // Optimierte Performance-Settings
-        throttling: {
-          rttMs: 40,
-          throughputKbps: 10240,
-          cpuSlowdownMultiplier: 1,
-          requestLatencyMs: 0,
-          downloadThroughputKbps: 0,
-          uploadThroughputKbps: 0
-        },
+        // Performance Settings
+        throttling: DESKTOP_THROTTLING,
         formFactor: 'desktop',
         screenEmulation: {
           mobile: false,
@@ -30,7 +44,7 @@ module.exports = {
           deviceScaleFactor: 1,
           disabled: false
         },
-        // Zusätzliche Audits aktivieren
+        // Enable Additional Audits
         skipAudits: ['uses-http2'],
         onlyCategories: [
           'performance',
@@ -41,7 +55,15 @@ module.exports = {
         ],
         extraHeaders: {
           'Cookie': ''
-        }
+        },
+        // Additional Settings
+        maxWaitForFcp: 15000,
+        maxWaitForLoad: 35000,
+        debugNavigation: true,
+        pauseAfterFcpMs: 1000,
+        pauseAfterLoadMs: 1000,
+        networkQuietThresholdMs: 1000,
+        cpuQuietThresholdMs: 1000
       }
     },
 
@@ -61,12 +83,17 @@ module.exports = {
         'speed-index': ['error', { maxNumericValue: 2500 }],
         'total-blocking-time': ['error', { maxNumericValue: 200 }],
         'cumulative-layout-shift': ['error', { maxNumericValue: 0.1 }],
+        'max-potential-fid': ['error', { maxNumericValue: 100 }],
+        'first-meaningful-paint': ['error', { maxNumericValue: 2000 }],
 
         // PWA Checks
         'installable-manifest': 'error',
         'service-worker': 'error',
         'works-offline': 'warning',
         'offline-start-url': 'warning',
+        'pwa-cross-browser': 'warning',
+        'pwa-page-transitions': 'warning',
+        'pwa-each-page-has-url': 'error',
 
         // Best Practices
         'uses-text-compression': 'error',
@@ -76,6 +103,10 @@ module.exports = {
         'uses-rel-preload': 'warning',
         'efficient-animated-content': 'warning',
         'js-libraries': 'warning',
+        'no-document-write': 'error',
+        'uses-http2': 'error',
+        'uses-long-cache-ttl': 'warning',
+        'dom-size': ['error', { maxNumericValue: 1500 }],
 
         // Accessibility
         'color-contrast': 'error',
@@ -85,6 +116,9 @@ module.exports = {
         'meta-viewport': 'error',
         'heading-order': 'error',
         'tap-targets': 'error',
+        'aria-*': 'error',
+        'html-lang-valid': 'error',
+        'image-alt': 'error',
 
         // SEO
         'meta-description': 'error',
@@ -92,17 +126,28 @@ module.exports = {
         'link-text': 'error',
         'crawlable-anchors': 'error',
         'robots-txt': 'error',
+        'hreflang': 'error',
+        'canonical': 'error',
+        'structured-data': 'warning',
 
         // Budgets
         'resource-summary:script:size': ['error', { maxNumericValue: 300000 }],
         'resource-summary:stylesheet:size': ['error', { maxNumericValue: 100000 }],
         'resource-summary:image:size': ['error', { maxNumericValue: 200000 }],
-        'resource-summary:third-party:count': ['error', { maxNumericValue: 10 }]
+        'resource-summary:third-party:count': ['error', { maxNumericValue: 10 }],
+        'resource-summary:total:size': ['error', { maxNumericValue: 1000000 }],
+        'mainthread-work-breakdown': ['error', { maxNumericValue: 4000 }],
+
+        // Additional Performance Metrics
+        'network-requests': ['error', { maxNumericValue: 100 }],
+        'network-rtt': ['error', { maxNumericValue: 150 }],
+        'network-server-latency': ['error', { maxNumericValue: 100 }],
+        'total-byte-weight': ['error', { maxNumericValue: 1600000 }]
       }
     },
 
     upload: {
-      // Upload-Konfiguration
+      // Upload Configuration
       target: 'temporary-public-storage',
       githubStatusContextSuffix: 'lighthouse-ci',
       githubToken: process.env.GITHUB_TOKEN,
@@ -111,10 +156,12 @@ module.exports = {
         username: process.env.LHCI_BUILD_CONTEXT__CURRENT_HASH,
         password: process.env.LHCI_TOKEN,
       },
+      outputDir: '.lighthouseci',
+      reportFilenamePattern: '%%PATHNAME%%-%%DATETIME%%-report.%%EXTENSION%%'
     },
 
     server: {
-      // Server-Konfiguration
+      // Server Configuration
       storage: {
         storageMethod: 'sql',
         sqlDialect: 'sqlite',
