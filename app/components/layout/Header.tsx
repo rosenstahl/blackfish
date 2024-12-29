@@ -9,6 +9,8 @@ import { Analytics } from '@/app/lib/analytics'
 import { cn } from '@/app/lib/utils'
 import { useDebounce } from '@/hooks/useDebounce'
 import LanguageSwitcher from '../common/LanguageSwitcher'
+import { buttonStyles, transitionStyles } from '@/app/styles/shared'
+import { menuAnimation } from '@/app/styles/animations'
 
 interface Props {
   className?: string;
@@ -19,17 +21,13 @@ export default function Header({ className }: Props) {
   const [isOpen, setIsOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
   const pathname = usePathname()
-  const isHomePage = pathname === '/'
   const headerRef = useRef<HTMLElement>(null)
   const lastScrollY = useRef(0)
 
-  // Optimierte Scroll-Handler mit Debounce
   const handleScroll = useCallback(() => {
     const currentScrollY = window.scrollY
-    
     setScrolled(currentScrollY > 20)
 
-    // Verstecke Header beim Runterscrollen, zeige beim Hochscrollen
     if (currentScrollY > lastScrollY.current && currentScrollY > 80) {
       headerRef.current?.classList.add('-translate-y-full')
     } else {
@@ -46,41 +44,28 @@ export default function Header({ className }: Props) {
     return () => window.removeEventListener('scroll', debouncedHandleScroll)
   }, [debouncedHandleScroll])
 
-  // Click Outside Handler
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      const target = e.target as HTMLElement
-      if (!target.closest('.mobile-menu') && !target.closest('.menu-button')) {
+      if (!e.target?.closest('.mobile-menu') && !e.target?.closest('.menu-button')) {
         setIsOpen(false)
       }
+    }
+    const handleEscKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsOpen(false)
     }
 
     document.addEventListener('click', handleClickOutside)
-    return () => document.removeEventListener('click', handleClickOutside)
-  }, [])
-
-  // Escape Key Handler
-  useEffect(() => {
-    const handleEscKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        setIsOpen(false)
-      }
-    }
-
     document.addEventListener('keydown', handleEscKey)
-    return () => document.removeEventListener('keydown', handleEscKey)
+    
+    return () => {
+      document.removeEventListener('click', handleClickOutside)
+      document.removeEventListener('keydown', handleEscKey)
+    }
   }, [])
 
-  // Prevent body scroll when mobile menu is open
   useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden'
-    } else {
-      document.body.style.overflow = ''
-    }
-    return () => {
-      document.body.style.overflow = ''
-    }
+    document.body.style.overflow = isOpen ? 'hidden' : ''
+    return () => { document.body.style.overflow = '' }
   }, [isOpen])
 
   const handleMobileNavClick = (href: string) => {
@@ -100,7 +85,8 @@ export default function Header({ className }: Props) {
     <header 
       ref={headerRef}
       className={cn(
-        "fixed top-0 w-full z-50 transition-all duration-300",
+        transitionStyles.base,
+        "fixed top-0 w-full z-50",
         scrolled ? "bg-[#1a1f36]/95 backdrop-blur-lg shadow-lg" : "bg-transparent",
         className
       )}
@@ -110,7 +96,7 @@ export default function Header({ className }: Props) {
         <nav 
           className="flex items-center justify-between h-20"
           role="navigation"
-          aria-label="Hauptnavigation"
+          aria-label={t('aria.mainNavigation')}
         >
           {/* Logo */}
           <Link 
@@ -140,16 +126,17 @@ export default function Header({ className }: Props) {
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => handleNavClick(item.href)}
-                className="text-gray-300 hover:text-white transition-colors duration-200"
+                className={cn(
+                  transitionStyles.colors,
+                  "text-gray-300 hover:text-white"
+                )}
               >
                 {t(`nav.${item.name}`)}
               </motion.button>
             ))}
 
-            {/* Language Switcher */}
             <LanguageSwitcher />
 
-            {/* Contact Button */}
             <motion.div
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
@@ -157,11 +144,9 @@ export default function Header({ className }: Props) {
               <Link 
                 href="/contact"
                 className={cn(
-                  "inline-flex items-center justify-center",
-                  "rounded-full bg-blue-500 px-6 py-2",
-                  "text-sm font-medium text-white",
-                  "transition-colors hover:bg-blue-600",
-                  "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                  buttonStyles.base,
+                  buttonStyles.primary,
+                  buttonStyles.sizes.md
                 )}
                 onClick={() => {
                   Analytics.event({
@@ -182,7 +167,7 @@ export default function Header({ className }: Props) {
             onClick={() => setIsOpen(!isOpen)}
             className="md:hidden relative z-50 text-white menu-button"
             aria-expanded={isOpen}
-            aria-label={isOpen ? "Menü schließen" : "Menü öffnen"}
+            aria-label={isOpen ? t('aria.closeMenu') : t('aria.openMenu')}
           >
             <AnimatePresence mode="wait">
               {isOpen ? (
@@ -199,10 +184,7 @@ export default function Header({ className }: Props) {
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.2 }}
+            {...menuAnimation.container}
             className={cn(
               "fixed inset-0 z-40 md:hidden mobile-menu",
               "bg-[#1a1f36]/98 backdrop-blur-lg"
@@ -212,20 +194,19 @@ export default function Header({ className }: Props) {
               {navigation.map((item, index) => (
                 <motion.button
                   key={item.name}
-                  initial={{ opacity: 0, y: -20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.1 }}
+                  {...menuAnimation.items(index)}
                   onClick={() => handleMobileNavClick(item.href)}
-                  className="text-2xl text-white hover:text-blue-400 transition-colors"
+                  className={cn(
+                    transitionStyles.colors,
+                    "text-2xl text-white hover:text-blue-400"
+                  )}
                 >
                   {t(`nav.${item.name}`)}
                 </motion.button>
               ))}
 
               <motion.div
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: navigation.length * 0.1 }}
+                {...menuAnimation.items(navigation.length)}
                 className="pt-4"
               >
                 <Link 
@@ -238,10 +219,9 @@ export default function Header({ className }: Props) {
                     })
                   }}
                   className={cn(
-                    "inline-flex items-center justify-center",
-                    "rounded-full bg-blue-500 px-8 py-3",
-                    "text-lg font-medium text-white",
-                    "transition-colors hover:bg-blue-600"
+                    buttonStyles.base,
+                    buttonStyles.primary,
+                    buttonStyles.sizes.lg
                   )}
                 >
                   {t('cta.contact')}
