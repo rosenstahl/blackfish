@@ -1,15 +1,10 @@
 import { http, HttpResponse } from 'msw'
 
 const handlers = [
-  http.get('/api/*', async ({ request }) => {
-    const response = await handleRequest(request);
-    return response;
+  http.get('/api/*', () => {
+    // Return a mocked response
+    return new HttpResponse('Mocked response');
   })
-];
-
-async function handleRequest(request: Request) {
-  // Implementierung der Request-Verarbeitung
-  return new HttpResponse('Mocked response');
-}
+]
 
 export default handlers;
