@@ -1,137 +1,109 @@
-import { motion } from 'framer-motion'
-import { AlertCircle, RefreshCw, Home } from 'lucide-react'
-import Link from 'next/link'
+import { Component, type ReactNode } from 'react'
 import { Analytics } from '@/app/lib/analytics'
-import { useEffect } from 'react'
 
-interface ErrorBoundaryProps {
-  error: Error & { 
-    digest?: string;
-    statusCode?: number;
-    title?: string;
-  };
-  reset: () => void;
+type Props = {
+  children: ReactNode
 }
 
-const ERROR_MESSAGES: Record<number, string> = {
-  404: 'Die angeforderte Seite wurde nicht gefunden.',
-  500: 'Ein interner Serverfehler ist aufgetreten.',
-  503: 'Der Service ist momentan nicht verfügbar.',
+type State = {
+  hasError: boolean
+  error: Error | null
 }
 
-export default function ErrorBoundary({ error, reset }: ErrorBoundaryProps) {
-  const statusCode = error.statusCode || 500
-  const errorMessage = error.message || ERROR_MESSAGES[statusCode] || 'Ein unerwarteter Fehler ist aufgetreten.'
+type ErrorInfo = {
+  digest?: string
+}
 
-  useEffect(() => {
-    // Track error occurrence
-    Analytics.event({
-      action: 'error_boundary',
-      category: 'Error',
-      label: `${statusCode}: ${errorMessage}`,
-      value: statusCode
-    })
+type ErrorEvent = {
+  action: string
+  category: string
+  label?: string
+}
 
-    // Log error to console in development
-    if (process.env.NODE_ENV === 'development') {
-      console.error('Error Boundary caught:', {
-        error,
-        stack: error.stack,
-        digest: error.digest
-      })
+export class ErrorBoundary extends Component<Props, State> {
+  constructor(props: Props) {
+    super(props)
+    this.state = {
+      hasError: false,
+      error: null
     }
-  }, [error, statusCode, errorMessage])
-
-  const handleReset = () => {
-    Analytics.event({
-      action: 'error_reset',
-      category: 'Error',
-      label: error.digest
-    })
-    reset()
   }
 
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-[#1a1f36] p-4">
-      <motion.div 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="max-w-md w-full bg-gray-800/50 backdrop-blur-sm rounded-2xl p-8 border border-gray-700"
-      >
-        <div className="flex justify-center mb-6">
-          <motion.div
-            animate={{ 
-              rotate: [0, -10, 10, 0],
-              scale: [1, 1.1, 1]
-            }}
-            transition={{ 
-              duration: 2,
-              repeat: Infinity,
-              ease: "easeInOut" 
-            }}
-            className="rounded-full bg-red-500/20 p-3"
-          >
-            <AlertCircle className="h-8 w-8 text-red-500" />
-          </motion.div>
+  public static getDerivedStateFromError(error: Error): State {
+    return {
+      hasError: true,
+      error
+    }
+  }
+
+  public override componentDidCatch(error: Error, info: ErrorInfo): void {
+    // Log error zu Analytics
+    const errorEvent: ErrorEvent = {
+      action: 'error_boundary_caught',
+      category: 'Error',
+      label: error.message
+    }
+    Analytics.event(errorEvent)
+  }
+
+  private handleReset = (): void => {
+    // Reset state
+    this.setState({
+      hasError: false,
+      error: null
+    })
+
+    // Log reset zu Analytics
+    const resetEvent: ErrorEvent = {
+      action: 'error_reset',
+      category: 'Error'
+    }
+    Analytics.event(resetEvent)
+  }
+
+  private handleHomeReturn = (): void => {
+    const returnEvent: ErrorEvent = {
+      action: 'error_home_return',
+      category: 'Error'
+    }
+    Analytics.event(returnEvent)
+    window.location.href = '/'
+  }
+
+  public render(): ReactNode {
+    if (this.state.hasError) {
+      return (
+        <div className="flex min-h-screen flex-col items-center justify-center p-4 text-center">
+          <div className="max-w-md space-y-4">
+            <h1 className="text-2xl font-bold text-white">
+              Oops! Etwas ist schiefgelaufen.
+            </h1>
+            
+            <p className="text-gray-400">
+              Ein unerwarteter Fehler ist aufgetreten. Wir wurden benachrichtigt und
+              arbeiten an einer Lösung.
+            </p>
+
+            <div className="flex justify-center space-x-4">
+              <button
+                onClick={this.handleReset}
+                className="rounded bg-blue-500 px-4 py-2 text-white hover:bg-blue-600"
+              >
+                Erneut versuchen
+              </button>
+
+              <button
+                onClick={this.handleHomeReturn}
+                className="rounded bg-gray-700 px-4 py-2 text-white hover:bg-gray-600"
+              >
+                Zur Startseite
+              </button>
+            </div>
+          </div>
         </div>
+      )
+    }
 
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.2 }}
-        >
-          <h1 className="text-2xl font-bold text-white text-center mb-4">
-            {error.title || 'Oops, etwas ist schiefgelaufen!'}
-          </h1>
-
-          <p className="text-gray-400 text-center mb-6">
-            {errorMessage}
-            {process.env.NODE_ENV === 'development' && (
-              <code className="block mt-2 text-xs bg-gray-900/50 p-2 rounded">
-                {error.stack}
-              </code>
-            )}
-          </p>
-        </motion.div>
-
-        <div className="space-y-4">
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={handleReset}
-            className="w-full flex items-center justify-center gap-2 bg-blue-500 text-white rounded-lg px-6 py-3 hover:bg-blue-600 transition-colors"
-          >
-            <RefreshCw className="h-5 w-5" />
-            Seite neu laden
-          </motion.button>
-
-          <Link 
-            href="/"
-            onClick={() => {
-              Analytics.event({
-                action: 'error_home_return',
-                category: 'Error',
-                label: error.digest
-              })
-            }}
-            className="w-full flex items-center justify-center gap-2 border border-gray-700 text-white rounded-lg px-6 py-3 hover:bg-gray-700/50 transition-colors"
-          >
-            <Home className="h-5 w-5" />
-            Zur Startseite
-          </Link>
-
-          {error.digest && (
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.4 }}
-              className="text-sm text-gray-500 text-center"
-            >
-              <span className="font-mono">Error-ID: {error.digest}</span>
-            </motion.div>
-          )}
-        </div>
-      </motion.div>
-    </div>
-  )
+    return this.props.children
+  }
 }
