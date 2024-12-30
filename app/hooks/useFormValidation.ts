@@ -1,54 +1,47 @@
-import { useState, useCallback } from 'react'
+import { useState } from 'react'
 import { useDebounce } from './useDebounce'
 
-interface ValidationRules {
+type ValidationRules = {
   required?: boolean
   minLength?: number
   maxLength?: number
   pattern?: RegExp
-  custom?: (value: string) => string | undefined
 }
 
-interface FieldRules {
-  [key: string]: ValidationRules
+type ValidationRuleSet<T> = {
+  [K in keyof T]: ValidationRules
 }
 
-export function useFormValidation<T extends { [key: string]: string }>(
+export function useFormValidation<T extends Record<string, any>>(
   initialValues: T,
-  rules: FieldRules
+  validationRules: Partial<ValidationRuleSet<T>>
 ) {
   const [values, setValues] = useState<T>(initialValues)
-  const [errors, setErrors] = useState<Partial<Record<keyof T, string>>>({})
-  const [touched, setTouched] = useState<Partial<Record<keyof T, boolean>>>({})
+  const [errors, setErrors] = useState<Partial<Record<keyof T, string>>>({})  
+  const [touched, setTouched] = useState<Partial<Record<keyof T, boolean>>>({})  
 
-  const debouncedValues = useDebounce(values, 300)
+  const validateField = (name: keyof T, value: any): string | undefined => {
+    const rules = validationRules[name]
+    if (!rules) return undefined
 
-  const validateField = useCallback((name: keyof T, value: string) => {
-    const fieldRules = rules[name as string]
-    if (!fieldRules) return undefined
-
-    if (fieldRules.required && !value.trim()) {
-      return `${String(name)} ist erforderlich`
+    if (rules.required && (!value || value.length === 0)) {
+      return 'Dieses Feld ist erforderlich'
     }
 
-    if (fieldRules.minLength && value.length < fieldRules.minLength) {
-      return `Mindestens ${fieldRules.minLength} Zeichen erforderlich`
+    if (rules.minLength && value.length < rules.minLength) {
+      return `Mindestens ${rules.minLength} Zeichen erforderlich`
     }
 
-    if (fieldRules.maxLength && value.length > fieldRules.maxLength) {
-      return `Maximal ${fieldRules.maxLength} Zeichen erlaubt`
+    if (rules.maxLength && value.length > rules.maxLength) {
+      return `Maximal ${rules.maxLength} Zeichen erlaubt`
     }
 
-    if (fieldRules.pattern && !fieldRules.pattern.test(value)) {
-      return `Ungültiges Format`
-    }
-
-    if (fieldRules.custom) {
-      return fieldRules.custom(value)
+    if (rules.pattern && !rules.pattern.test(value)) {
+      return 'Ungültiges Format'
     }
 
     return undefined
-  }, [rules])
+  }
 
   return {
     values,
