@@ -1,103 +1,99 @@
-import { Component, ReactNode, createContext, useContext } from 'react'
-import { motion } from 'framer-motion'
-import { AlertCircle, RefreshCw } from 'lucide-react'
-import { trackError } from '@/app/lib/monitoring'
+import { type Component, type ReactNode, createContext, useContext } from 'react'
 import { Analytics } from '@/app/lib/analytics'
 
-interface Props {
-  children: ReactNode;
-  fallback?: ReactNode;
-  onError?: (error: Error) => void;
-  maxRetries?: number;
+type Props = {
+  children: ReactNode
+  fallback?: ReactNode
+  onReset?: () => void
 }
 
-interface State {
-  hasError: boolean;
-  error: Error | null;
-  errorInfo: any;
-  retryCount: number;
+type State = {
+  hasError: boolean
+  error: Error | null
+  retryCount: number
 }
 
-// Context for error handling
-const ErrorBoundaryContext = createContext<{
-  retryCount: number;
-  maxRetries: number;
-}>({
-  retryCount: 0,
-  maxRetries: 3,
-})
-
-export function useErrorBoundary() {
-  return useContext(ErrorBoundaryContext)
+type ErrorInfo = {
+  componentStack: string
+  digest?: string
 }
 
-export default class ErrorBoundaryWithRetry extends Component<Props, State> {
-  public static defaultProps = {
-    maxRetries: 3,
+type RetryContextType = {
+  reset: () => void
+}
+
+const RetryContext = createContext<RetryContextType | null>(null)
+
+export function useRetry(): RetryContextType {
+  const context = useContext(RetryContext)
+  if (!context) {
+    throw new Error('useRetry must be used within an ErrorBoundaryWithRetry')
   }
+  return context
+}
 
+export class ErrorBoundaryWithRetry extends Component<Props, State> {
   constructor(props: Props) {
     super(props)
     this.state = {
       hasError: false,
       error: null,
-      errorInfo: null,
-      retryCount: 0,
+      retryCount: 0
     }
   }
 
-  static getDerivedStateFromError(error: Error): Partial<State> {
-    return { 
-      hasError: true, 
-      error 
+  public static getDerivedStateFromError(error: Error): State {
+    return {
+      hasError: true,
+      error,
+      retryCount: 0
     }
   }
 
-  componentDidCatch(error: Error, errorInfo: any) {
-    // Track error with additional context
-    trackError(error, {
-      componentStack: errorInfo.componentStack,
-      retryCount: this.state.retryCount,
+  public override componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
+    // Log error zu Analytics
+    Analytics.event({
+      action: 'error_boundary_caught',
+      category: 'Error',
+      label: error.message
     })
 
-    // Call custom error handler if provided
-    this.props.onError?.(error)
+    console.error('Error caught by ErrorBoundary:', {
+      error,
+      errorInfo,
+      retryCount: this.state.retryCount
+    })
+  }
 
-    // Track error analytics
+  private reset = (): void => {
+    const newRetryCount = this.state.retryCount + 1
+    
+    // Log retry zu Analytics
     Analytics.event({
-      action: 'error_boundary_catch',
+      action: 'error_boundary_retry',
       category: 'Error',
-      label: error.message,
-      value: this.state.retryCount
+      label: this.state.error?.message,
+      value: newRetryCount
     })
 
     this.setState({
-      errorInfo
+      hasError: false,
+      error: null,
+      retryCount: newRetryCount
     })
+
+    this.props.onReset?.()
   }
 
-  retry = () => {
-    this.setState(state => {
-      const newRetryCount = state.retryCount + 1
-
-      // Track retry attempt
-      Analytics.event({
-        action: 'error_boundary_retry',
-        category: 'Error',
-        label: state.error?.message,
-        value: newRetryCount
-      })
-
-      return {
-        hasError: false,
-        retryCount: newRetryCount,
-      }
-    })
-  }
-
-  render() {
+  public override render(): ReactNode {
+    const { children, fallback } = this.props
     const { hasError, error, retryCount } = this.state
-    const { children, fallback, maxRetries = 3 } = this.props
+
+    const retry = {
+      reset: this.reset,
+      error,
+      retryCount
+    }
 
     if (hasError) {
       if (fallback) {
@@ -105,65 +101,33 @@ export default class ErrorBoundaryWithRetry extends Component<Props, State> {
       }
 
       return (
-        <div className="min-h-[400px] p-6 flex items-center justify-center">
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="max-w-md w-full bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 text-center"
-          >
-            <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ type: "spring", duration: 0.5 }}
-              className="mx-auto w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mb-4"
-            >
-              <AlertCircle className="w-8 h-8 text-red-500" />
-            </motion.div>
-
-            <h2 className="text-xl font-semibold text-white mb-2">
+        <div className="flex min-h-screen flex-col items-center justify-center p-4 text-center">
+          <div className="max-w-md space-y-4">
+            <h1 className="text-2xl font-bold text-white">
               Etwas ist schiefgelaufen
-            </h2>
-
-            <p className="text-gray-400 mb-6">
-              {error?.message || 'Ein unerwarteter Fehler ist aufgetreten.'}
+            </h1>
+            
+            <p className="text-gray-400">
+              Ein Fehler ist aufgetreten. Bitte versuchen Sie es erneut.
             </p>
 
-            {retryCount < maxRetries ? (
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={this.retry}
-                className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+            {retryCount < 3 && (
+              <button
+                onClick={this.reset}
+                className="rounded bg-blue-500 px-4 py-2 text-white hover:bg-blue-600"
               >
-                <RefreshCw className="w-4 h-4" />
-                Erneut versuchen ({maxRetries - retryCount} Versuche übrig)
-              </motion.button>
-            ) : (
-              <div className="text-gray-500 text-sm">
-                Maximale Anzahl an Wiederholungsversuchen erreicht. 
-                Bitte laden Sie die Seite neu oder versuchen Sie es später erneut.
-              </div>
+                Erneut versuchen
+              </button>
             )}
-
-            {process.env.NODE_ENV === 'development' && (
-              <pre className="mt-4 p-4 bg-gray-900 rounded-lg text-left text-xs text-gray-400 overflow-auto">
-                {error?.stack}
-              </pre>
-            )}
-          </motion.div>
+          </div>
         </div>
       )
     }
 
     return (
-      <ErrorBoundaryContext.Provider 
-        value={{
-          retryCount,
-          maxRetries,
-        }}
-      >
+      <RetryContext.Provider value={retry}>
         {children}
-      </ErrorBoundaryContext.Provider>
+      </RetryContext.Provider>
     )
   }
 }
