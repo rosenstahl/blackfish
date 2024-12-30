@@ -1,12 +1,15 @@
-import { http } from 'msw'
+import { http, HttpResponse } from 'msw'
 
-export const handlers = [
-  http.get('/api/*', ({ request }) => {
-    return new Response(JSON.stringify({}), {
-      status: 200,
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    })
+const handlers = [
+  http.get('/api/*', async ({ request }) => {
+    const response = await handleRequest(request);
+    return response;
   })
-]
+];
+
+async function handleRequest(request: Request) {
+  // Implementierung der Request-Verarbeitung
+  return new HttpResponse('Mocked response');
+}
+
+export default handlers;
