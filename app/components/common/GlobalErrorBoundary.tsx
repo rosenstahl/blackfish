@@ -1,169 +1,126 @@
-import { Component, ErrorInfo, ReactNode, useEffect } from 'react'
+import { Component, type ErrorInfo, type ReactNode } from 'react'
 import { Analytics } from '@/app/lib/analytics'
-import { trackError } from '@/app/lib/monitoring'
-import ErrorBoundary from './ErrorBoundary'
 
-interface Props {
-  children: ReactNode;
-  fallback?: ReactNode;
+type Props = {
+  children: ReactNode
 }
 
-interface State {
-  error: Error | null;
-  errorInfo: ErrorInfo | null;
-  errorCount: number;
-  lastError: number;
+type State = {
+  hasError: boolean
+  error: Error | null
+  errorInfo: ErrorInfo | null
 }
-
-const ERROR_THRESHOLD = 3;
-const ERROR_RESET_TIME = 60000; // 1 minute
 
 export default class GlobalErrorBoundary extends Component<Props, State> {
-  constructor(props: Props) {
-    super(props)
-    this.state = { 
-      error: null,
-      errorInfo: null,
-      errorCount: 0,
-      lastError: 0
+  public state: State = {
+    hasError: false,
+    error: null,
+    errorInfo: null
+  }
+
+  public static getDerivedStateFromError(error: Error): State {
+    return {
+      hasError: true,
+      error,
+      errorInfo: null
     }
   }
 
-  static getDerivedStateFromError(error: Error): Partial<State> {
-    return { error }
-  }
-
-  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    const now = Date.now()
-    
-    this.setState(prevState => {
-      // Reset error count if enough time has passed
-      if (now - prevState.lastError > ERROR_RESET_TIME) {
-        return {
-          error,
-          errorInfo,
-          errorCount: 1,
-          lastError: now
-        }
-      }
-
-      // Increment error count
-      return {
-        error,
-        errorInfo,
-        errorCount: prevState.errorCount + 1,
-        lastError: now
-      }
+  public override componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
+    this.setState({
+      errorInfo
     })
 
-    // Track error with monitoring service
-    trackError(error, {
-      componentStack: errorInfo.componentStack,
-      count: this.state.errorCount,
-      timestamp: now
-    })
-
-    // Track error analytics
+    // Log error zu Analytics
     Analytics.event({
       action: 'global_error',
       category: 'Error',
-      label: error.message,
-      value: this.state.errorCount
+      label: error.message
     })
 
-    // Log to console in development
-    if (process.env.NODE_ENV === 'development') {
-      console.error('Global Error Caught:', {
-        error,
-        componentStack: errorInfo.componentStack,
-        count: this.state.errorCount
-      })
-    }
+    // Fehler auch zur Konsole loggen
+    console.error('Global error caught:', {
+      error,
+      errorInfo,
+      componentStack: errorInfo.componentStack
+    })
   }
 
-  handleReset = () => {
+  private handleRetry = (): void => {
+    // Reset state
     this.setState({
+      hasError: false,
       error: null,
       errorInfo: null
     })
 
-    // Track reset attempt
+    // Log retry zu Analytics
     Analytics.event({
-      action: 'global_error_reset',
-      category: 'Error',
-      value: this.state.errorCount
+      action: 'global_error_retry',
+      category: 'Error'
     })
+
+    // Seite neu laden
+    window.location.reload()
   }
 
-  render() {
-    const { error, errorCount } = this.state
-    const { children, fallback } = this.props
+  private handleReturn = (): void => {
+    // Log return zu Analytics
+    Analytics.event({
+      action: 'global_error_return',
+      category: 'Error'
+    })
 
-    // Return fallback UI if too many errors
-    if (errorCount >= ERROR_THRESHOLD) {
-      return fallback || (
-        <div className="min-h-screen flex items-center justify-center bg-gray-900 p-4">
-          <div className="text-center text-white">
-            <h1 className="text-2xl font-bold mb-4">
-              Zu viele Fehler aufgetreten
+    // Zur Startseite navigieren
+    window.location.href = '/'
+  }
+
+  public override render(): ReactNode {
+    if (this.state.hasError) {
+      return (
+        <div className="flex min-h-screen flex-col items-center justify-center p-4 text-center">
+          <div className="max-w-md space-y-6">
+            <h1 className="text-3xl font-bold text-white">
+              Ups! Da ist etwas schiefgelaufen.
             </h1>
-            <p className="text-gray-400 mb-4">
-              Bitte laden Sie die Seite neu oder versuchen Sie es später erneut.
+
+            <p className="text-lg text-gray-400">
+              Ein unerwarteter Fehler ist aufgetreten. Wir wurden benachrichtigt
+              und kümmern uns darum.
             </p>
-            <button
-              onClick={() => window.location.reload()}
-              className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
-            >
-              Seite neu laden
-            </button>
+
+            <div className="space-y-4">
+              <button
+                onClick={this.handleRetry}
+                className="w-full rounded-lg bg-blue-500 px-6 py-3 font-medium text-white hover:bg-blue-600"
+              >
+                Seite neu laden
+              </button>
+
+              <button
+                onClick={this.handleReturn}
+                className="w-full rounded-lg bg-gray-700 px-6 py-3 font-medium text-white hover:bg-gray-600"
+              >
+                Zurück zur Startseite
+              </button>
+            </div>
+
+            {process.env.NODE_ENV === 'development' && this.state.errorInfo && (
+              <details className="mt-4 rounded-lg bg-gray-800 p-4 text-left">
+                <summary className="cursor-pointer text-sm font-medium text-gray-400">
+                  Technische Details
+                </summary>
+                <pre className="mt-2 overflow-auto text-xs text-gray-400">
+                  {this.state.error?.stack}
+                  {this.state.errorInfo.componentStack}
+                </pre>
+              </details>
+            )}
           </div>
         </div>
       )
     }
 
-    // Show error boundary if there's an error
-    if (error) {
-      return (
-        <ErrorBoundary 
-          error={error} 
-          reset={this.handleReset}
-        />
-      )
-    }
-
-    return children
+    return this.props.children
   }
-}
-
-// Hook to initialize error tracking
-export function useErrorTracking() {
-  useEffect(() => {
-    function handleError(event: ErrorEvent) {
-      trackError(event.error)
-      Analytics.event({
-        action: 'unhandled_error',
-        category: 'Error',
-        label: event.message
-      })
-    }
-
-    function handleUnhandledRejection(event: PromiseRejectionEvent) {
-      trackError(event.reason)
-      Analytics.event({
-        action: 'unhandled_rejection',
-        category: 'Error',
-        label: event.reason?.message
-      })
-    }
-
-    // Add global error listeners
-    window.addEventListener('error', handleError)
-    window.addEventListener('unhandledrejection', handleUnhandledRejection)
-
-    // Clean up
-    return () => {
-      window.removeEventListener('error', handleError)
-      window.removeEventListener('unhandledrejection', handleUnhandledRejection)
-    }
-  }, [])
 }
