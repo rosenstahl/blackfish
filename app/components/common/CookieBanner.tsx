@@ -1,11 +1,21 @@
-import { motion, AnimatePresence } from 'framer-motion'
 import { useState, useEffect } from 'react'
-import { Settings, X, Shield, ChartBar, Target } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Settings, Shield, BarChart } from 'lucide-react'
 import { useCookieConsent } from '@/app/context/CookieConsentContext'
 import { Analytics } from '@/app/lib/analytics'
 import { cn } from '@/app/lib/utils'
 
-const cookieGroups = [
+type CookieGroup = {
+  id: string;
+  icon: React.FC;
+  title: string;
+  description: string;
+  color: string;
+  bgColor: string;
+  isRequired: boolean;
+}
+
+const cookieGroups: CookieGroup[] = [
   {
     id: 'necessary',
     icon: Shield,
@@ -13,219 +23,187 @@ const cookieGroups = [
     description: 'Diese Cookies sind für die Grundfunktionen der Website erforderlich.',
     color: 'text-green-400',
     bgColor: 'bg-green-500/20',
-    required: true
+    isRequired: true
+  },
+  {
+    id: 'functional',
+    icon: Settings,
+    title: 'Funktional',
+    description: 'Ermöglichen eine bessere Nutzererfahrung und Funktionalität.',
+    color: 'text-purple-400',
+    bgColor: 'bg-purple-500/20',
+    isRequired: false
   },
   {
     id: 'analytics',
-    icon: ChartBar,
+    icon: BarChart,
     title: 'Analytics',
     description: 'Helfen uns zu verstehen, wie Besucher mit der Website interagieren.',
     color: 'text-blue-400',
-    bgColor: 'bg-blue-500/20'
-  },
-  {
-    id: 'marketing',
-    icon: Target,
-    title: 'Marketing',
-    description: 'Ermöglichen personalisierte Werbung und Analyse des Nutzerverhaltens.',
-    color: 'text-purple-400',
-    bgColor: 'bg-purple-500/20'
+    bgColor: 'bg-blue-500/20',
+    isRequired: false
   }
-] as const
+];
 
 export default function CookieBanner() {
-  const { consent, updateConsent, saveConsent, hasInteracted } = useCookieConsent()
+  const { consent, updateConsent, saveConsent } = useCookieConsent()
   const [showDetails, setShowDetails] = useState(false)
-  const [isClosing, setIsClosing] = useState(false)
 
   useEffect(() => {
-    // Automatically show details on mobile
-    const isMobile = window.innerWidth < 768
-    setShowDetails(isMobile)
-  }, [])
-
-  if (hasInteracted) return null
+    if (showDetails !== undefined) {
+      Analytics.event({
+        action: showDetails ? 'cookie_details_show' : 'cookie_details_hide',
+        category: 'Cookie Consent',
+        label: 'Cookie Banner Interaction'
+      })
+    }
+  }, [showDetails])
 
   const handleAcceptAll = () => {
-    Analytics.event({
-      action: 'cookie_consent',
-      category: 'Consent',
-      label: 'accept_all'
-    })
+    const newConsent = Object.fromEntries(
+      cookieGroups.map(group => [group.id, true])
+    )
+    updateConsent(newConsent)
+    saveConsent()
 
-    updateConsent('analytics', true)
-    updateConsent('marketing', true)
-    setIsClosing(true)
-    setTimeout(() => saveConsent(), 300)
+    Analytics.event({
+      action: 'cookie_accept_all',
+      category: 'Cookie Consent',
+      label: 'Accept All Cookies'
+    })
   }
 
-  const handleAcceptNecessary = () => {
-    Analytics.event({
-      action: 'cookie_consent',
-      category: 'Consent',
-      label: 'necessary_only'
-    })
+  const handleAcceptSelected = () => {
+    saveConsent()
 
-    setIsClosing(true)
-    setTimeout(() => saveConsent(), 300)
+    Analytics.event({
+      action: 'cookie_accept_selected',
+      category: 'Cookie Consent',
+      label: 'Accept Selected Cookies'
+    })
   }
 
-  const handleSaveSettings = () => {
-    Analytics.event({
-      action: 'cookie_consent',
-      category: 'Consent',
-      label: 'custom_settings'
+  const handleToggleCookie = (groupId: string) => {
+    updateConsent({
+      ...consent,
+      [groupId]: !consent[groupId]
     })
-
-    setIsClosing(true)
-    setTimeout(() => saveConsent(), 300)
   }
 
   return (
-    <motion.div
-      initial={{ y: 100, opacity: 0 }}
-      animate={{ y: 0, opacity: 1 }}
-      exit={{ y: 100, opacity: 0 }}
-      transition={{ duration: 0.3 }}
-      className={cn(
-        "fixed bottom-0 left-0 right-0 z-50",
-        "bg-gray-900/95 backdrop-blur-lg border-t border-gray-800"
-      )}
-      role="dialog"
-      aria-labelledby="cookie-consent-title"
-      aria-describedby="cookie-consent-description"
-    >
-      <div className="container mx-auto px-4 py-6">
-        <div className="flex flex-col space-y-4">
-          {/* Header */}
-          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-            <div className="flex-1">
-              <h3 
-                id="cookie-consent-title"
-                className="text-lg font-semibold text-white mb-2"
-              >
-                Wir respektieren Ihre Privatsphäre
-              </h3>
-              <p 
-                id="cookie-consent-description"
-                className="text-gray-300 text-sm"
-              >
-                Wir verwenden Cookies, um Ihre Erfahrung auf unserer Website zu verbessern. 
-                Sie können selbst entscheiden, welche Cookies Sie akzeptieren möchten.
-              </p>
-            </div>
+    <AnimatePresence>
+      <div
+        className="fixed inset-x-0 bottom-0 z-50 pb-safe-area-inset-bottom"
+        role="dialog"
+        aria-labelledby="cookie-banner-title"
+      >
+        <motion.div
+          initial={{ y: '100%' }}
+          animate={{ y: 0 }}
+          exit={{ y: '100%' }}
+          transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+          className={cn(
+            'bg-gray-900/95 backdrop-blur supports-[backdrop-filter]:bg-gray-900/75',
+            'border-t border-gray-800',
+            'p-4 md:p-6'
+          )}
+        >
+          <div className="mx-auto max-w-7xl space-y-4">
+            {/* Header */}
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+              <div className="space-y-3 md:flex-1">
+                <h2
+                  id="cookie-banner-title"
+                  className="text-xl font-semibold text-white"
+                >
+                  Cookie-Einstellungen
+                </h2>
+                <p className="text-sm text-gray-400">
+                  Wir verwenden Cookies, um Ihre Erfahrung zu verbessern.
+                </p>
+              </div>
 
-            {/* Action Buttons */}
-            <div className="flex flex-col sm:flex-row gap-3 min-w-[300px]">
-              <button
-                onClick={handleAcceptAll}
-                className={cn(
-                  "w-full px-4 py-2 rounded-lg transition-colors",
-                  "bg-blue-500 text-white hover:bg-blue-600",
-                  "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-900"
-                )}
-                aria-label="Alle Cookies akzeptieren"
-              >
-                Alle akzeptieren
-              </button>
-              <button
-                onClick={handleAcceptNecessary}
-                className={cn(
-                  "w-full px-4 py-2 rounded-lg transition-colors",
-                  "bg-gray-800 text-white hover:bg-gray-700",
-                  "focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 focus:ring-offset-gray-900"
-                )}
-                aria-label="Nur notwendige Cookies akzeptieren"
-              >
-                Nur notwendige
-              </button>
-            </div>
-
-            {/* Toggle Details Button */}
-            <button
-              onClick={() => setShowDetails(!showDetails)}
-              className={cn(
-                "text-gray-400 hover:text-white transition-colors",
-                "focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 focus:ring-offset-gray-900"
-              )}
-              aria-expanded={showDetails}
-              aria-controls="cookie-settings"
-              aria-label={showDetails ? "Cookie-Einstellungen schließen" : "Cookie-Einstellungen öffnen"}
-            >
-              {showDetails ? (
-                <X className="h-5 w-5" />
-              ) : (
-                <Settings className="h-5 w-5" />
-              )}
-            </button>
-          </div>
-
-          {/* Detailed Settings */}
-          <AnimatePresence>
-            {showDetails && (
-              <motion.div
-                id="cookie-settings"
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: 'auto', opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                transition={{ duration: 0.3 }}
-                className="border-t border-gray-800 pt-4"
-              >
-                <div className="grid md:grid-cols-3 gap-4">
-                  {cookieGroups.map((group) => (
-                    <div 
-                      key={group.id}
-                      className="p-4 rounded-lg bg-gray-800/50"
-                    >
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-2">
-                          <group.icon className={cn("h-5 w-5", group.color)} />
-                          <h4 className="font-medium text-white">{group.title}</h4>
-                        </div>
-                        <div className="relative">
-                          <input
-                            type="checkbox"
-                            id={`cookie-${group.id}`}
-                            checked={group.required || consent[group.id]}
-                            onChange={(e) => updateConsent(group.id, e.target.checked)}
-                            disabled={group.required}
-                            className="sr-only peer"
-                            aria-label={`${group.title} Cookies ${group.required ? '(erforderlich)' : ''}`}
-                          />
-                          <div className={cn(
-                            "w-11 h-6 rounded-full transition-colors",
-                            group.required ? "bg-green-500" : "bg-gray-700 peer-checked:bg-blue-500"
-                          )}/>
-                          <div className={cn(
-                            "absolute left-1 top-1 w-4 h-4 bg-white rounded-full transition-all",
-                            "peer-checked:left-6"
-                          )}/>
-                        </div>
-                      </div>
-                      <p className="text-sm text-gray-400">
-                        {group.description}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="mt-4 flex justify-end">
+              {/* Buttons */}
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <button
+                  onClick={handleAcceptAll}
+                  className={cn(
+                    'rounded-lg bg-blue-500 px-5 py-2.5',
+                    'text-sm font-medium text-white',
+                    'hover:bg-blue-600 transition-colors'
+                  )}
+                >
+                  Alle akzeptieren
+                </button>
+                {!showDetails && (
                   <button
-                    onClick={handleSaveSettings}
+                    onClick={() => setShowDetails(true)}
                     className={cn(
-                      "px-6 py-2 rounded-lg transition-colors",
-                      "bg-blue-500 text-white hover:bg-blue-600",
-                      "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-900"
+                      'rounded-lg border border-gray-700 px-5 py-2.5',
+                      'text-sm font-medium text-white',
+                      'hover:bg-gray-800 transition-colors'
                     )}
                   >
-                    Einstellungen speichern
+                    Einstellungen
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Cookie Groups */}
+            {showDetails && (
+              <div className="space-y-4">
+                {cookieGroups.map((group) => (
+                  <div
+                    key={group.id}
+                    className={cn(
+                      'rounded-lg p-4',
+                      group.bgColor
+                    )}
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <group.icon className={cn('h-5 w-5', group.color)} />
+                          <h3 className="font-medium text-white">
+                            {group.title}
+                          </h3>
+                        </div>
+                        <p className="mt-1 text-sm text-gray-400">
+                          {group.description}
+                        </p>
+                      </div>
+
+                      <div className="flex items-center">
+                        <input
+                          type="checkbox"
+                          checked={group.isRequired || consent[group.id]}
+                          disabled={group.isRequired}
+                          onChange={() => handleToggleCookie(group.id)}
+                          className="h-4 w-4 rounded border-gray-600 bg-gray-700"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+
+                <div className="flex justify-end">
+                  <button
+                    onClick={handleAcceptSelected}
+                    className={cn(
+                      'rounded-lg bg-blue-500 px-5 py-2.5',
+                      'text-sm font-medium text-white',
+                      'hover:bg-blue-600 transition-colors'
+                    )}
+                  >
+                    Auswahl speichern
                   </button>
                 </div>
-              </motion.div>
+              </div>
             )}
-          </AnimatePresence>
-        </div>
+          </div>
+        </motion.div>
       </div>
-    </motion.div>
+    </AnimatePresence>
   )
 }
