@@ -1,20 +1,19 @@
-import { useEffect, useState, useCallback } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { Send, Loader2, CheckCircle, AlertCircle } from 'lucide-react'
+import { useState } from 'react'
+import { AnimatePresence } from 'framer-motion'
+import { Send } from 'lucide-react'
 import Link from 'next/link'
 import { useFormValidation } from '@/hooks/useFormValidation'
 import { Analytics } from '@/app/lib/analytics'
-import { cn } from '@/app/lib/utils'
-import { Form, Input, Textarea } from '@/app/components/ui/form'
 import { Alert } from '@/app/components/ui/Alert'
 import { Button } from '@/app/components/ui/Button'
+import { Form, Input, Textarea } from '@/app/components/ui/form'
 
 interface FormData {
-  name: string;
-  email: string;
-  subject: string;
-  message: string;
-  phone?: string;
+  name: string
+  email: string
+  subject: string
+  message: string
+  phone?: string
 }
 
 const initialFormData: FormData = {
@@ -56,7 +55,6 @@ const validationRules = {
 export default function ContactForm() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle')
-  const [csrfToken, setCsrfToken] = useState<string>('')
 
   const {
     values,
@@ -67,49 +65,30 @@ export default function ContactForm() {
     validateField
   } = useFormValidation<FormData>(initialFormData, validationRules)
 
-  // Get CSRF token on mount
-  useEffect(() => {
-    fetch('/api/csrf')
-      .then(res => res.text())
-      .then(token => setCsrfToken(token))
-      .catch(console.error)
-  }, [])
-
-  // Track form interactions
-  useEffect(() => {
-    if (Object.keys(touched).length > 0) {
-      Analytics.event({
-        action: 'form_interaction',
-        category: 'Contact',
-        label: Object.keys(touched).join(',')
-      })
-    }
-  }, [touched])
-
-  const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
-    setValues(prev => ({ ...prev, [name]: value }))
+    setValues({ ...values, [name]: value })
     
     if (touched[name]) {
       validateField(name as keyof FormData, value)
     }
-  }, [setValues, touched, validateField])
+  }
 
-  const handleBlur = useCallback((e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleBlur = (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
-    setTouched(prev => ({ ...prev, [name]: true }))
+    setTouched({ ...touched, [name]: true })
     validateField(name as keyof FormData, value)
-  }, [setTouched, validateField])
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    // Validate all fields on submit
+    // Validate all fields
     let hasErrors = false
-    Object.keys(values).forEach(key => {
+    Object.keys(validationRules).forEach(key => {
       const error = validateField(key as keyof FormData, values[key as keyof FormData])
       if (error) hasErrors = true
-      setTouched(prev => ({ ...prev, [key]: true }))
+      setTouched({ ...touched, [key]: true })
     })
 
     if (hasErrors) {
@@ -127,16 +106,12 @@ export default function ContactForm() {
     try {
       const response = await fetch('/api/contact', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-csrf-token': csrfToken
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(values)
       })
 
       if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.message || 'Ein Fehler ist aufgetreten')
+        throw new Error('Submission failed')
       }
 
       setSubmitStatus('success')
@@ -149,7 +124,7 @@ export default function ContactForm() {
       })
 
     } catch (error) {
-      console.error('Fehler:', error)
+      console.error('Contact form error:', error)
       setSubmitStatus('error')
 
       Analytics.event({
@@ -170,8 +145,6 @@ export default function ContactForm() {
           <Alert 
             variant="success"
             title="Nachricht gesendet"
-            icon
-            animate
           >
             Ihre Nachricht wurde erfolgreich gesendet!
           </Alert>
@@ -181,8 +154,6 @@ export default function ContactForm() {
           <Alert 
             variant="error"
             title="Fehler"
-            icon
-            animate
           >
             Ein Fehler ist aufgetreten. Bitte versuchen Sie es später erneut.
           </Alert>
@@ -255,13 +226,13 @@ export default function ContactForm() {
           type="submit"
           disabled={isSubmitting}
           isLoading={isSubmitting}
-          leftIcon={!isSubmitting && <Send className="h-5 w-5" />}
+          leftIcon={<Send className="h-5 w-5" />}
           className="w-full"
         >
           Nachricht senden
         </Button>
 
-        <p className="text-sm text-gray-400 text-center mt-4">
+        <p className="mt-4 text-center text-sm text-gray-400">
           Mit dem Absenden stimmen Sie unserer{' '}
           <Link 
             href="/datenschutz" 
