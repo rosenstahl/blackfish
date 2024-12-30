@@ -1,111 +1,83 @@
-import { NextResponse } from 'next/server';
-import { headers } from 'next/headers';
-import { rateLimit } from '@/app/lib/rate-limit';
-import { Analytics } from '@/app/lib/analytics';
+import { type NextRequest } from 'next/server';
 import crypto from 'crypto';
 
-const CSRF_SECRET = process.env.CSRF_SECRET;
-if (!CSRF_SECRET) {
-  throw new Error('CSRF_SECRET environment variable is not set');
-}
+const tokenLength = 32;
+const tokenExpiration = 60 * 60 * 1000; // 1 hour
 
-// Generate CSRF Token
-function generateToken(): string {
-  const timestamp = Date.now();
-  const randomBytes = crypto.randomBytes(32).toString('hex');
-  const data = `${timestamp}.${randomBytes}`;
+// Verwenden Sie environment variable mit type-safety
+const CSRF_SECRET = process.env['CSRF_SECRET'] || crypto.randomBytes(32).toString('hex');
+
+export async function generateToken(userContext: string): Promise<string> {
+  // Generiere zufälligen Token
+  const randomToken = crypto.randomBytes(tokenLength).toString('hex');
   
+  // Timestamp hinzufügen
+  const timestamp = Date.now().toString();
+  
+  // Kombiniere Token, Timestamp und User-Context
+  const data = `${randomToken}|${timestamp}|${userContext}`;
+  
+  // Erstelle HMAC
   const hmac = crypto.createHmac('sha256', CSRF_SECRET);
   hmac.update(data);
   const signature = hmac.digest('hex');
-
-  const token = Buffer.from(JSON.stringify({
-    timestamp,
-    random: randomBytes,
-    signature
-  })).toString('base64');
-
+  
+  // Kombiniere alles zum finalen Token
+  const token = Buffer.from(`${data}|${signature}`).toString('base64');
+  
   return token;
 }
 
-// Validate Request
-async function validateRequest(ip: string, userAgent?: string): Promise<boolean> {
-  // Rate limiting
-  const isAllowed = await rateLimit(ip, userAgent, 10, 60000); // 10 requests per minute
-  if (!isAllowed) {
-    Analytics.event({
-      action: 'csrf_rate_limit_exceeded',
-      category: 'Security',
-      label: ip
-    });
+export async function validateToken(token: string, userContext: string): Promise<boolean> {
+  try {
+    // Dekodiere Token
+    const decoded = Buffer.from(token, 'base64').toString();
+    const [randomPart, timestamp, savedContext, signature] = decoded.split('|');
+    
+    // Überprüfe User-Context
+    if (savedContext !== userContext) {
+      return false;
+    }
+    
+    // Überprüfe Timestamp
+    const tokenTime = parseInt(timestamp, 10);
+    if (Date.now() - tokenTime > tokenExpiration) {
+      return false;
+    }
+    
+    // Überprüfe Signatur
+    const data = `${randomPart}|${timestamp}|${savedContext}`;
+    const hmac = crypto.createHmac('sha256', CSRF_SECRET);
+    hmac.update(data);
+    const expectedSignature = hmac.digest('hex');
+    
+    return crypto.timingSafeEqual(
+      Buffer.from(signature),
+      Buffer.from(expectedSignature)
+    );
+    
+  } catch {
     return false;
   }
-
-  return true;
 }
 
-export async function GET() {
-  try {
-    // Get request headers
-    const headersList = headers();
-    const forwardedFor = headersList.get('x-forwarded-for');
-    const userAgent = headersList.get('user-agent');
-    const ip = forwardedFor?.split(',')[0] ?? 'unknown';
-
-    // Validate request
-    const isValid = await validateRequest(ip, userAgent);
-    if (!isValid) {
-      return new NextResponse(null, {
-        status: 429,
-        statusText: 'Too Many Requests',
-        headers: {
-          'Retry-After': '60',
-          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
-          'Pragma': 'no-cache',
-          'Expires': '0'
-        }
-      });
+export async function GET(request: NextRequest) {
+  const headersList = request.headers;
+  const forwardedFor = headersList.get('x-forwarded-for');
+  const userAgent = headersList.get('user-agent');
+  
+  // Erstelle User-Context aus verfügbaren Informationen
+  const userContext = `${forwardedFor}|${userAgent}`;
+  
+  // Generiere Token
+  const token = await generateToken(userContext);
+  
+  return new Response(token, {
+    status: 200,
+    headers: {
+      'Content-Type': 'text/plain',
+      'Cache-Control': 'no-store, no-cache, must-revalidate',
+      'Pragma': 'no-cache'
     }
-
-    // Generate new token
-    const token = generateToken();
-
-    // Track token generation
-    Analytics.event({
-      action: 'csrf_token_generated',
-      category: 'Security',
-      label: ip
-    });
-
-    // Return token with security headers
-    return new NextResponse(token, {
-      status: 200,
-      headers: {
-        'Content-Type': 'text/plain',
-        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
-        'Pragma': 'no-cache',
-        'Expires': '0',
-        'X-Content-Type-Options': 'nosniff',
-        'X-Frame-Options': 'DENY',
-        'X-XSS-Protection': '1; mode=block'
-      }
-    });
-
-  } catch (error) {
-    console.error('CSRF Token Generation Error:', error);
-    
-    Analytics.event({
-      action: 'csrf_token_error',
-      category: 'Error',
-      label: error instanceof Error ? error.message : 'Unknown error'
-    });
-
-    return new NextResponse(null, {
-      status: 500,
-      statusText: 'Internal Server Error',
-      headers: {
-        'Cache-Control': 'no-store'
-      }
-    });
-  }
+  });
 }
