@@ -1,25 +1,35 @@
+import { cva } from 'class-variance-authority'
 import { cn } from '@/app/lib/utils'
-import { containerStyles } from '@/app/styles/shared'
 
-interface ContainerProps extends React.HTMLAttributes<HTMLDivElement> {
+const containerStyles = cva(
+  'mx-auto px-4 sm:px-6 lg:px-8',
+  {
+    variants: {
+      size: {
+        sm: 'max-w-3xl',
+        md: 'max-w-5xl',
+        lg: 'max-w-7xl',
+      }
+    },
+    defaultVariants: {
+      size: 'lg'
+    }
+  }
+)
+
+type ContainerProps = {
+  children: React.ReactNode
+  className?: string
   size?: 'sm' | 'md' | 'lg'
 }
 
 export function Container({
-  className,
-  size = 'md',
   children,
-  ...props
+  className,
+  size = 'lg'
 }: ContainerProps) {
   return (
-    <div
-      className={cn(
-        containerStyles.base,
-        containerStyles.sizes[size],
-        className
-      )}
-      {...props}
-    >
+    <div className={cn(containerStyles({ size }), className)}>
       {children}
     </div>
   )
