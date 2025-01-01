@@ -10,10 +10,7 @@ export default {
   ],
   future: {
     hoverOnlyWhenSupported: true,
-    respectDefaultRingColorOpacity: true,
     disableColorOpacityUtilitiesByDefault: true,
-    respectDefaultRingColorOpacity: true,
-    removeDeprecatedGapUtilities: true,
   },
   theme: {
     extend: {
@@ -130,7 +127,7 @@ export default {
       backdropBlur: {
         xs: '2px',
       },
-      typography: (theme: any) => ({
+      typography: (theme: (value: string) => string) => ({
         DEFAULT: {
           css: {
             maxWidth: 'none',
