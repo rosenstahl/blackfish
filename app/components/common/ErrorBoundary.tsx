@@ -36,7 +36,7 @@ export class ErrorBoundary extends Component<Props, State> {
     }
   }
 
-  public override componentDidCatch(error: Error, info: ErrorInfo): void {
+  public override componentDidCatch(error: Error): void {
     // Log error zu Analytics
     const errorEvent: ErrorEvent = {
       action: 'error_boundary_caught',
@@ -70,7 +70,7 @@ export class ErrorBoundary extends Component<Props, State> {
     window.location.href = '/'
   }
 
-  public render(): ReactNode {
+  public override render(): ReactNode {
     if (this.state.hasError) {
       return (
         <div className="flex min-h-screen flex-col items-center justify-center p-4 text-center">
