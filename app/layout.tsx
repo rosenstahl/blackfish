@@ -1,82 +1,47 @@
-// app/layout.tsx
-import type { Metadata } from "next";
-import "./globals.css";
+import { type Metadata, type Viewport } from 'next'
+import { fontVariables } from '@/app/fonts/fonts'
+import { cn } from '@/app/lib/utils'
+import Providers from '@/app/providers/Providers'
+import { Analytics } from '@/app/lib/analytics'
 
-// Components
-import Header from "@/app/components/layout/Header";
-import Footer from "@/app/components/layout/Footer";
-import CookieBanner from "@/app/components/common/CookieBanner";
-import GlobalErrorBoundary from "./components/common/GlobalErrorBoundary";
-import SkipLink from "@/app/components/common/SkipLink";
-
-// Providers
-import { CookieConsentProvider } from "@/app/context/CookieConsentContext";
-import { LoadingProvider } from "@/app/context/LoadingContext";
-import { Providers } from './providers/Providers';
-
-// Config & Utils
-import defaultMetadata from "@/app/lib/metadata";
-import { getOrganizationSchema } from '@/app/lib/schema';
-import { inter, fontVariables } from '@/app/fonts/fonts';
-
-// Metadata Configuration
 export const metadata: Metadata = {
-  ...defaultMetadata,
-  viewport: {
-    width: 'device-width',
-    initialScale: 1,
-    viewportFit: 'cover',
-    themeColor: [{ media: '(prefers-color-scheme: dark)', color: '#1a1a1a' }],
+  title: 'BLACKFISH.DIGITAL',
+  description: 'Digitalagentur für moderne Webentwicklung und Online Marketing',
+  icons: {
+    icon: '/favicon.ico',
+    apple: '/apple-touch-icon.png'
   },
-};
+  manifest: '/manifest.json',
+  openGraph: {
+    title: 'BLACKFISH.DIGITAL',
+    description: 'Digitalagentur für moderne Webentwicklung und Online Marketing',
+    url: 'https://blackfish.digital',
+    siteName: 'BLACKFISH.DIGITAL',
+    locale: 'de_DE',
+    type: 'website'
+  }
+}
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  colorScheme: 'dark'
+}
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html 
-      lang="de" 
-      className={`scroll-smooth ${fontVariables}`}
-      suppressHydrationWarning
-    >
-      <head>
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify(getOrganizationSchema())
-          }}
-        />
-        <link
-          rel="preload"
-          href="/fonts/Inter-roman.var.woff2"
-          as="font"
-          type="font/woff2"
-          crossOrigin="anonymous"
-        />
-      </head>
-      <body 
-        className={`bg-gray-900 text-white antialiased min-h-screen selection:bg-primary-200 selection:text-primary-900`}
-      >
+    <html lang="de" className={cn(
+      fontVariables,
+      'scroll-smooth antialiased',
+      'bg-[#1a1f36] text-white'
+    )}>
+      <body>
+        <Analytics />
         <Providers>
-          <GlobalErrorBoundary>
-            <CookieConsentProvider>
-              <LoadingProvider>
-                <SkipLink />
-                <div className="relative flex min-h-screen flex-col">
-                  <Header />
-                  <main id="main-content" className="flex-grow">
-                    {children}
-                  </main>
-                  <Footer />
-                  <CookieBanner />
-                </div>
-              </LoadingProvider>
-            </CookieConsentProvider>
-          </GlobalErrorBoundary>
+          {children}
         </Providers>
       </body>
     </html>
-  );
+  )
 }
