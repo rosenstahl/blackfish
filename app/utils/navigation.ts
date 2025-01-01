@@ -1,5 +1,3 @@
-// app/utils/navigation.ts
-
 import { Analytics } from '@/app/lib/analytics';
 
 export const navigation = [
@@ -8,17 +6,10 @@ export const navigation = [
   { name: 'pakete', href: '/#pricing', label: 'Pakete' }
 ];
 
-interface ScrollOptions {
-  setLoading?: (state: boolean) => void;
-  trackAnalytics?: boolean;
-}
+type ScrollCallback = () => void;
 
-export function scrollToSection(sectionId: string, options: ScrollOptions = {}): boolean {
-  const { setLoading, trackAnalytics = true } = options;
-
+export function scrollToSection(sectionId: string, callback?: ScrollCallback): boolean {
   try {
-    if (setLoading) setLoading(true);
-
     const element = document.getElementById(sectionId);
     if (!element) {
       console.warn(`Section "${sectionId}" wurde nicht gefunden`);
@@ -36,55 +27,32 @@ export function scrollToSection(sectionId: string, options: ScrollOptions = {}):
     });
 
     // Analytics Event
-    if (trackAnalytics && typeof window.gtag !== 'undefined') {
-      Analytics.event({
-        action: 'section_scroll',
-        category: 'Navigation',
-        label: sectionId,
-        value: Math.round(offsetPosition)
-      });
-    }
+    Analytics.event({
+      action: 'section_scroll',
+      category: 'Navigation',
+      label: sectionId,
+      value: Math.round(offsetPosition)
+    });
 
-    // Reset Loading State
-    if (setLoading) {
-      setTimeout(() => setLoading(false), 1000);
+    // Call callback after scroll
+    if (callback) {
+      setTimeout(callback, 1000);
     }
 
     return true;
   } catch (error) {
     console.error('Scroll error:', error);
-    if (setLoading) setLoading(false);
     return false;
   }
 }
 
 // Utility-Funktion für Navigation-Links
-export function handleNavClick(href: string, options: ScrollOptions = {}): void {
+export function handleNavClick(href: string, callback?: ScrollCallback): void {
   if (href.startsWith('/#')) {
     const sectionId = href.replace('/#', '');
-    scrollToSection(sectionId, options);
+    scrollToSection(sectionId, callback);
   } else {
     window.location.href = href;
+    if (callback) callback();
   }
-}
-
-// Performance optimierte Scroll-Event Listener
-export function initScrollListener(): () => void {
-  let ticking = false;
-  
-  const onScroll = () => {
-    if (!ticking) {
-      window.requestAnimationFrame(() => {
-        const scrollPos = window.pageYOffset;
-        // Hier können weitere Scroll-basierte Aktionen hinzugefügt werden
-        ticking = false;
-      });
-      ticking = true;
-    }
-  };
-
-  window.addEventListener('scroll', onScroll, { passive: true });
-  
-  // Cleanup Funktion
-  return () => window.removeEventListener('scroll', onScroll);
 }

@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Rocket, Menu, X } from 'lucide-react'
 import { navigation, handleNavClick } from '@/app/utils/navigation'
@@ -20,7 +19,6 @@ export default function Header({ className }: Props) {
   const { t } = useTranslation()
   const [isOpen, setIsOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
-  const pathname = usePathname()
   const headerRef = useRef<HTMLElement>(null)
   const lastScrollY = useRef(0)
 
@@ -46,7 +44,8 @@ export default function Header({ className }: Props) {
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (!e.target?.closest('.mobile-menu') && !e.target?.closest('.menu-button')) {
+      const target = e.target as HTMLElement
+      if (!target?.closest('.mobile-menu') && !target?.closest('.menu-button')) {
         setIsOpen(false)
       }
     }
@@ -70,14 +69,12 @@ export default function Header({ className }: Props) {
 
   const handleMobileNavClick = (href: string) => {
     setIsOpen(false)
-    handleNavClick(href, {
-      onSuccess: () => {
-        Analytics.event({
-          action: 'mobile_nav_click',
-          category: 'Navigation',
-          label: href
-        })
-      }
+    handleNavClick(href, () => {
+      Analytics.event({
+        action: 'mobile_nav_click',
+        category: 'Navigation',
+        label: href
+      })
     })
   }
 
@@ -127,7 +124,7 @@ export default function Header({ className }: Props) {
                 whileTap={{ scale: 0.95 }}
                 onClick={() => handleNavClick(item.href)}
                 className={cn(
-                  transitionStyles.colors,
+                  transitionStyles.base,
                   "text-gray-300 hover:text-white"
                 )}
               >
@@ -145,7 +142,7 @@ export default function Header({ className }: Props) {
                 href="/contact"
                 className={cn(
                   buttonStyles.base,
-                  buttonStyles.primary,
+                  buttonStyles.variants.primary,
                   buttonStyles.sizes.md
                 )}
                 onClick={() => {
@@ -184,7 +181,7 @@ export default function Header({ className }: Props) {
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            {...menuAnimation.container}
+            {...menuAnimation}
             className={cn(
               "fixed inset-0 z-40 md:hidden mobile-menu",
               "bg-[#1a1f36]/98 backdrop-blur-lg"
@@ -194,10 +191,10 @@ export default function Header({ className }: Props) {
               {navigation.map((item, index) => (
                 <motion.button
                   key={item.name}
-                  {...menuAnimation.items(index)}
+                  {...menuAnimation}
                   onClick={() => handleMobileNavClick(item.href)}
                   className={cn(
-                    transitionStyles.colors,
+                    transitionStyles.base,
                     "text-2xl text-white hover:text-blue-400"
                   )}
                 >
@@ -206,7 +203,7 @@ export default function Header({ className }: Props) {
               ))}
 
               <motion.div
-                {...menuAnimation.items(navigation.length)}
+                {...menuAnimation}
                 className="pt-4"
               >
                 <Link 
@@ -220,7 +217,7 @@ export default function Header({ className }: Props) {
                   }}
                   className={cn(
                     buttonStyles.base,
-                    buttonStyles.primary,
+                    buttonStyles.variants.primary,
                     buttonStyles.sizes.lg
                   )}
                 >

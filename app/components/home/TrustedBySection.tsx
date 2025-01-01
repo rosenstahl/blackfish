@@ -3,7 +3,6 @@ import { motion } from 'framer-motion'
 import { CheckCircle } from 'lucide-react'
 import { useInView } from 'react-intersection-observer'
 import { Analytics } from '@/app/lib/analytics'
-import { cn } from '@/app/lib/utils'
 
 const companies = [
   {
@@ -49,11 +48,9 @@ const companies = [
 ]
 
 const CompanyCard = memo(function CompanyCard({
-  company,
-  index
+  company
 }: {
   company: typeof companies[0]
-  index: number
 }) {
   const trackCompanyHover = useCallback(() => {
     Analytics.event({
@@ -93,7 +90,7 @@ const CompanyCard = memo(function CompanyCard({
 })
 
 export default function TrustedBySection() {
-  const [ref, inView] = useInView({
+  const [ref] = useInView({
     threshold: 0.1,
     triggerOnce: true
   })
@@ -109,7 +106,7 @@ export default function TrustedBySection() {
       <div className="absolute inset-0">
         <motion.div 
           animate={{ 
-            backgroundPosition: ['0% 0%', '100% 100%'],
+            backgroundPosition: ['0% 0%', '100% 100%']
           }}
           transition={{
             duration: 30,
@@ -149,11 +146,10 @@ export default function TrustedBySection() {
           role="list"
           aria-label="Unsere Referenzen"
         >
-          {companies.map((company, index) => (
+          {companies.map((company) => (
             <CompanyCard 
               key={company.name} 
               company={company}
-              index={index}
             />
           ))}
         </div>
