@@ -12,7 +12,7 @@ const stats = [
     gradientFrom: "from-blue-500",
     gradientTo: "to-blue-600",
     delay: 0.2,
-    suffix: "+",
+    suffix: "+"
   },
   {
     icon: Star,
@@ -21,7 +21,7 @@ const stats = [
     gradientFrom: "from-green-500",
     gradientTo: "to-green-600",
     delay: 0.4,
-    suffix: "%",
+    suffix: "%"
   },
   {
     icon: Award,
@@ -30,7 +30,7 @@ const stats = [
     gradientFrom: "from-purple-500",
     gradientTo: "to-purple-600",
     delay: 0.6,
-    suffix: "+",
+    suffix: "+"
   }
 ]
 
@@ -149,7 +149,7 @@ export default function StatsSection() {
           role="list"
           aria-label="Unsere Erfolge in Zahlen"
         >
-          {stats.map((stat, index) => (
+          {stats.map((stat) => (
             <motion.div
               key={stat.label}
               variants={itemVariants}
@@ -221,7 +221,7 @@ export default function StatsSection() {
         <motion.div
           animate={{
             y: [0, -20, 0],
-            rotate: [0, 5, 0],
+            rotate: [0, 5, 0]
           }}
           transition={{
             duration: 5,
@@ -233,7 +233,7 @@ export default function StatsSection() {
         <motion.div
           animate={{
             y: [0, 20, 0],
-            rotate: [0, -5, 0],
+            rotate: [0, -5, 0]
           }}
           transition={{
             duration: 7,
