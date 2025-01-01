@@ -1,42 +1,34 @@
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
-import { headers } from 'next/headers';
 
-// Sicheres Fallback für den Fall, dass keine ENV-Variable gesetzt ist
-const CSRF_SECRET = process.env['CSRF_SECRET'] || crypto.randomBytes(32).toString('hex');
 const CSRF_TOKEN_EXPIRY = 24 * 60 * 60 * 1000; // 24 Stunden
 
 function getClientIp(req: NextRequest): string {
   const forwardedFor = req.headers.get('x-forwarded-for');
   if (forwardedFor) {
-    return forwardedFor.split(',')[0];
+    return forwardedFor.split(',')[0].trim();
   }
-  const xRealIp = req.headers.get('x-real-ip');
-  if (xRealIp) {
-    return xRealIp;
-  }
-  return '127.0.0.1';
+  return req.headers.get('x-real-ip') || '127.0.0.1';
 }
 
 export async function GET(req: NextRequest) {
   try {
-    // Direkte Header-Verarbeitung ohne await
-    const forwardedFor = getClientIp(req);
+    const clientIp = getClientIp(req);
     const userAgent = req.headers.get('user-agent') || 'unknown';
 
     // Erstelle einen sicheren Token
     const timestamp = Date.now().toString();
     const randomBytes = crypto.randomBytes(32).toString('hex');
-    const data = `${randomBytes}|${timestamp}|${forwardedFor}|${userAgent}`;
+    const data = `${randomBytes}|${timestamp}|${clientIp}|${userAgent}`;
     
     // Signiere den Token
-    const hmac = crypto.createHmac('sha256', CSRF_SECRET);
+    const hmac = crypto.createHmac('sha256', process.env['CSRF_SECRET'] || crypto.randomBytes(32).toString('hex'));
     hmac.update(data);
     const signature = hmac.digest('hex');
     
     // Kombiniere zu finalem Token
     const tokenData = `${data}|${signature}`;
-    const token = Buffer.from(tokenData, 'utf-8').toString('base64');
+    const token = Buffer.from(tokenData).toString('base64');
 
     // Setze sichere Response-Header
     return new NextResponse(token, {
@@ -55,44 +47,40 @@ export async function GET(req: NextRequest) {
 }
 
 export async function verifyToken(token: string, req: NextRequest): Promise<boolean> {
-  try {
-    const decodedToken = Buffer.from(token, 'base64').toString('utf-8');
-    const parts = decodedToken.split('|');
-    if (parts.length !== 5) {
-      return false;
-    }
+  if (!token) return false;
 
-    const [randomBytes, timestamp, storedForwardedFor, storedUserAgent, signature] = parts;
+  try {
+    const decodedToken = Buffer.from(token, 'base64').toString();
+    const parts = decodedToken.split('|');
+    if (parts.length !== 5) return false;
+
+    const [randomBytes, timestamp, storedClientIp, storedUserAgent, signature] = parts;
 
     // Überprüfe Timestamp
-    const parsedTimestamp = parseInt(timestamp, 10);
-    if (isNaN(parsedTimestamp)) {
-      return false;
-    }
+    const parsedTimestamp = Number(timestamp);
+    if (isNaN(parsedTimestamp)) return false;
 
     const tokenAge = Date.now() - parsedTimestamp;
-    if (tokenAge > CSRF_TOKEN_EXPIRY) {
-      return false;
-    }
+    if (tokenAge > CSRF_TOKEN_EXPIRY) return false;
 
     // Überprüfe Client-Informationen
-    const currentForwardedFor = getClientIp(req);
+    const currentClientIp = getClientIp(req);
     const currentUserAgent = req.headers.get('user-agent') || 'unknown';
 
-    if (storedForwardedFor !== currentForwardedFor || storedUserAgent !== currentUserAgent) {
+    if (storedClientIp !== currentClientIp || storedUserAgent !== currentUserAgent) {
       return false;
     }
 
     // Überprüfe Signatur
-    const data = `${randomBytes}|${timestamp}|${storedForwardedFor}|${storedUserAgent}`;
-    const hmac = crypto.createHmac('sha256', CSRF_SECRET);
+    const data = `${randomBytes}|${timestamp}|${storedClientIp}|${storedUserAgent}`;
+    const hmac = crypto.createHmac('sha256', process.env['CSRF_SECRET'] || crypto.randomBytes(32).toString('hex'));
     hmac.update(data);
     const expectedSignature = hmac.digest('hex');
 
-    const signatureBuffer = Buffer.from(signature, 'hex');
-    const expectedBuffer = Buffer.from(expectedSignature, 'hex');
-
-    return crypto.timingSafeEqual(signatureBuffer, expectedBuffer);
+    return crypto.timingSafeEqual(
+      Buffer.from(signature, 'hex'),
+      Buffer.from(expectedSignature, 'hex')
+    );
 
   } catch (error) {
     console.error('CSRF token verification error:', error);
