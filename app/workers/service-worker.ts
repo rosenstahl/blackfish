@@ -1,13 +1,14 @@
+/// <reference lib="webworker" />
+
 import { precacheAndRoute } from 'workbox-precaching'
 import { registerRoute } from 'workbox-routing'
-import {
-  NetworkFirst,
-  StaleWhileRevalidate,
-  CacheFirst
-} from 'workbox-strategies'
+import { NetworkFirst, StaleWhileRevalidate, CacheFirst } from 'workbox-strategies'
 import { CacheableResponsePlugin } from 'workbox-cacheable-response'
 import { ExpirationPlugin } from 'workbox-expiration'
-import { BackgroundSyncPlugin } from 'workbox-background-sync'
+import { BackgroundSyncPlugin, Queue } from 'workbox-background-sync'
+import type { Plugin } from 'workbox-core'
+
+declare const self: ServiceWorkerGlobalScope & { __WB_MANIFEST: Array<{ revision: string, url: string }> }
 
 // Precache und Route setzen
 precacheAndRoute(self.__WB_MANIFEST)
@@ -20,32 +21,31 @@ registerRoute(
     plugins: [
       new CacheableResponsePlugin({
         statuses: [0, 200]
-      }),
+      }) as Plugin,
       new ExpirationPlugin({
         maxEntries: 50,
         maxAgeSeconds: 60 * 60 * 24, // 24 Stunden
-        purgeOnQuotaError: true
-      })
+      }) as Plugin
     ]
   })
 )
 
 // Statische Assets Cache Strategy
 registerRoute(
-  ({ request }) => request.destination === 'style' || 
-                   request.destination === 'script' || 
-                   request.destination === 'worker',
+  ({ request }) =>
+    request.destination === 'style' ||
+    request.destination === 'script' ||
+    request.destination === 'worker',
   new StaleWhileRevalidate({
     cacheName: 'static-resources',
     plugins: [
       new CacheableResponsePlugin({
         statuses: [0, 200]
-      }),
+      }) as Plugin,
       new ExpirationPlugin({
         maxEntries: 60,
         maxAgeSeconds: 60 * 60 * 24 * 30, // 30 Tage
-        purgeOnQuotaError: true
-      })
+      }) as Plugin
     ]
   })
 )
@@ -58,12 +58,11 @@ registerRoute(
     plugins: [
       new CacheableResponsePlugin({
         statuses: [0, 200]
-      }),
+      }) as Plugin,
       new ExpirationPlugin({
         maxEntries: 100,
         maxAgeSeconds: 60 * 60 * 24 * 30, // 30 Tage
-        purgeOnQuotaError: true
-      })
+      }) as Plugin
     ]
   })
 )
@@ -76,12 +75,11 @@ registerRoute(
     plugins: [
       new CacheableResponsePlugin({
         statuses: [0, 200]
-      }),
+      }) as Plugin,
       new ExpirationPlugin({
         maxEntries: 10,
         maxAgeSeconds: 60 * 60 * 24 * 365, // 1 Jahr
-        purgeOnQuotaError: true
-      })
+      }) as Plugin
     ]
   })
 )
@@ -89,7 +87,7 @@ registerRoute(
 // Background Sync für API Requests
 const bgSyncPlugin = new BackgroundSyncPlugin('apiQueue', {
   maxRetentionTime: 24 * 60 // Retry für bis zu 24 Stunden (in Minuten)
-})
+}) as Plugin
 
 registerRoute(
   ({ url }) => url.pathname.startsWith('/api/'),
@@ -101,18 +99,18 @@ registerRoute(
 )
 
 // Content Sync
-self.addEventListener('sync', (event) => {
+self.addEventListener('sync', (event: SyncEvent) => {
   if (event.tag === 'content-sync') {
     event.waitUntil(syncContent())
   }
 })
 
-async function syncContent() {
+async function syncContent(): Promise<void> {
   try {
     const cache = await caches.open('content-cache')
     const keys = await cache.keys()
-    
-    return Promise.all(
+
+    await Promise.all(
       keys.map(async (request) => {
         try {
           const response = await fetch(request)
@@ -130,12 +128,13 @@ async function syncContent() {
 }
 
 // Cache Cleanup
-self.addEventListener('activate', (event) => {
+self.addEventListener('activate', (event: ExtendableEvent) => {
+  const cacheWhitelist = ['api-cache', 'static-resources', 'images', 'fonts']
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames.map((cacheName) => {
-          if (!['api-cache', 'static-resources', 'images', 'fonts'].includes(cacheName)) {
+          if (!cacheWhitelist.includes(cacheName)) {
             return caches.delete(cacheName)
           }
           return Promise.resolve()
