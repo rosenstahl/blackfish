@@ -1,15 +1,24 @@
 import { cn } from '@/app/lib/utils'
 import { alertStyles } from '@/app/styles/components'
 import { AlertCircle, CheckCircle, Info, XCircle } from 'lucide-react'
-import { motion } from 'framer-motion'
+import { motion, type HTMLMotionProps } from 'framer-motion'
 
 type AlertVariant = 'info' | 'success' | 'warning' | 'error'
 
-interface AlertProps extends React.HTMLAttributes<HTMLDivElement> {
+type BaseAlertProps = {
   variant?: AlertVariant
   title?: string
   icon?: boolean
   animate?: boolean
+  children?: React.ReactNode
+}
+
+type AlertProps = BaseAlertProps & Omit<HTMLMotionProps<"div">, keyof BaseAlertProps>
+
+const variants = {
+  initial: { opacity: 0, y: -10 },
+  animate: { opacity: 1, y: 0 },
+  exit: { opacity: 0, y: -10 }
 }
 
 export function Alert({
@@ -31,6 +40,8 @@ export function Alert({
   const Icon = icons[variant]
   const Component = animate ? motion.div : 'div'
 
+  const motionProps = animate ? variants : {}
+
   return (
     <Component
       className={cn(
@@ -38,11 +49,7 @@ export function Alert({
         alertStyles.variants[variant],
         className
       )}
-      {...(animate && {
-        initial: { opacity: 0, y: -10 },
-        animate: { opacity: 1, y: 0 },
-        exit: { opacity: 0, y: -10 }
-      })}
+      {...motionProps}
       role="alert"
       {...props}
     >
