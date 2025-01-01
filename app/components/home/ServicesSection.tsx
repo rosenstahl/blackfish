@@ -1,5 +1,5 @@
 import { memo, useCallback } from 'react'
-import { motion, useAnimation } from 'framer-motion'
+import { motion } from 'framer-motion'
 import { 
   Code, 
   Globe, 
@@ -143,7 +143,7 @@ const ServiceCard = memo(function ServiceCard({
 })
 
 export default function ServicesSection() {
-  const [ref, inView] = useInView({
+  const [ref] = useInView({
     triggerOnce: true,
     threshold: 0.1
   })
@@ -212,7 +212,7 @@ export default function ServicesSection() {
       <motion.div
         animate={{
           y: [0, -20, 0],
-          rotate: [0, 5, 0],
+          rotate: [0, 5, 0]
         }}
         transition={{
           duration: 5,
@@ -224,7 +224,7 @@ export default function ServicesSection() {
       <motion.div
         animate={{
           y: [0, 20, 0],
-          rotate: [0, -5, 0],
+          rotate: [0, -5, 0]
         }}
         transition={{
           duration: 7,
