@@ -1,15 +1,16 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react'
 
 export interface ConsentType {
-  necessary: boolean
-  functional: boolean
-  analytics: boolean
+  [key: string]: boolean;
+  necessary: boolean;
+  functional: boolean;
+  analytics: boolean;
 }
 
 type CookieConsentContextType = {
-  consent: ConsentType | null
-  updateConsent: (type: keyof ConsentType, value: boolean) => void
-  saveConsent: () => void
+  consent: ConsentType | null;
+  updateConsent: (type: keyof ConsentType, value: boolean) => void;
+  saveConsent: () => void;
 }
 
 const CookieConsentContext = createContext<CookieConsentContextType | null>(null)
@@ -24,15 +25,17 @@ export function CookieConsentProvider({ children }: { children: ReactNode }) {
   const [consent, setConsent] = useState<ConsentType | null>(null)
 
   useEffect(() => {
-    // Load consent from localStorage on mount
     const savedConsent = localStorage.getItem('cookieConsent')
     if (savedConsent) {
       try {
-        setConsent(JSON.parse(savedConsent))
+        const parsed = JSON.parse(savedConsent)
+        setConsent(parsed)
       } catch (error) {
         console.error('Error parsing cookie consent:', error)
         setConsent(defaultConsent)
       }
+    } else {
+      setConsent(defaultConsent)
     }
   }, [])
 
