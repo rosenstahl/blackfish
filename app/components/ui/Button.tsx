@@ -1,14 +1,22 @@
 import { forwardRef } from 'react'
-import { motion } from 'framer-motion'
+import { motion, type HTMLMotionProps } from 'framer-motion'
 import { cn } from '@/app/lib/utils'
 import { buttonStyles } from '@/app/styles/shared'
 
-interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+type BaseButtonProps = {
   variant?: 'primary' | 'secondary'
   size?: 'sm' | 'md' | 'lg'
   isLoading?: boolean
   leftIcon?: React.ReactNode
   rightIcon?: React.ReactNode
+  children?: React.ReactNode
+}
+
+type ButtonProps = BaseButtonProps & Omit<HTMLMotionProps<"button">, keyof BaseButtonProps>
+
+const buttonVariants = {
+  hover: { scale: 1.05 },
+  tap: { scale: 0.95 }
 }
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
@@ -21,16 +29,18 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     rightIcon,
     children,
     disabled,
+    whileHover = buttonVariants.hover,
+    whileTap = buttonVariants.tap,
     ...props
   }, ref) => {
     return (
       <motion.button
         ref={ref}
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
+        whileHover={whileHover}
+        whileTap={whileTap}
         className={cn(
           buttonStyles.base,
-          buttonStyles[variant],
+          buttonStyles.variants[variant],
           buttonStyles.sizes[size],
           isLoading && 'opacity-75 cursor-not-allowed',
           disabled && 'opacity-50 cursor-not-allowed',
