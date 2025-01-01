@@ -5,6 +5,12 @@ import { useCookieConsent } from '@/app/context/CookieConsentContext'
 import { Analytics } from '@/app/lib/analytics'
 import { cn } from '@/app/lib/utils'
 
+export interface ConsentType {
+  necessary: boolean;
+  functional: boolean;
+  analytics: boolean;
+}
+
 type CookieGroup = {
   id: keyof ConsentType;
   icon: React.ComponentType<{ className?: string }>;
@@ -13,12 +19,6 @@ type CookieGroup = {
   color: string;
   bgColor: string;
   isRequired: boolean;
-}
-
-interface ConsentType {
-  necessary: boolean;
-  functional: boolean;
-  analytics: boolean;
 }
 
 const cookieGroups: CookieGroup[] = [
