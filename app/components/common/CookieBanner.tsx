@@ -6,13 +6,19 @@ import { Analytics } from '@/app/lib/analytics'
 import { cn } from '@/app/lib/utils'
 
 type CookieGroup = {
-  id: string;
-  icon: React.FC;
+  id: keyof ConsentType;
+  icon: React.ComponentType<{ className?: string }>;
   title: string;
   description: string;
   color: string;
   bgColor: string;
   isRequired: boolean;
+}
+
+interface ConsentType {
+  necessary: boolean;
+  functional: boolean;
+  analytics: boolean;
 }
 
 const cookieGroups: CookieGroup[] = [
@@ -60,10 +66,9 @@ export default function CookieBanner() {
   }, [showDetails])
 
   const handleAcceptAll = () => {
-    const newConsent = Object.fromEntries(
-      cookieGroups.map(group => [group.id, true])
-    )
-    updateConsent(newConsent)
+    cookieGroups.forEach(group => {
+      updateConsent(group.id, true)
+    })
     saveConsent()
 
     Analytics.event({
@@ -83,11 +88,9 @@ export default function CookieBanner() {
     })
   }
 
-  const handleToggleCookie = (groupId: string) => {
-    updateConsent({
-      ...consent,
-      [groupId]: !consent[groupId]
-    })
+  const handleToggleCookie = (groupId: keyof ConsentType) => {
+    if (!consent) return
+    updateConsent(groupId, !consent[groupId])
   }
 
   return (
@@ -151,7 +154,7 @@ export default function CookieBanner() {
             </div>
 
             {/* Cookie Groups */}
-            {showDetails && (
+            {showDetails && consent && (
               <div className="space-y-4">
                 {cookieGroups.map((group) => (
                   <div
