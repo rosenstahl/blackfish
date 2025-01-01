@@ -1,6 +1,6 @@
 import { memo } from 'react'
 import { motion } from 'framer-motion'
-import { LucideIcon } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 import { cn } from '@/app/lib/utils'
 import { Analytics } from '@/app/lib/analytics'
 
