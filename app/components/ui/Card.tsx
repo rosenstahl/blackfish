@@ -1,11 +1,19 @@
 import { cn } from '@/app/lib/utils'
-import { motion } from 'framer-motion'
+import { motion, type HTMLMotionProps } from 'framer-motion'
 import { cardStyles } from '@/app/styles/shared'
 
-interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
+type BaseCardProps = {
   variant?: 'light' | 'dark'
   isHoverable?: boolean
   isInteractive?: boolean
+  children?: React.ReactNode
+}
+
+type CardProps = BaseCardProps & Omit<HTMLMotionProps<"div">, keyof BaseCardProps>
+
+const cardVariants = {
+  hover: { scale: 1.02 },
+  tap: { scale: 0.98 }
 }
 
 export function Card({
@@ -14,23 +22,22 @@ export function Card({
   isHoverable = false,
   isInteractive = false,
   children,
+  whileHover = cardVariants.hover,
+  whileTap = cardVariants.tap,
   ...props
 }: CardProps) {
   const Component = isInteractive ? motion.div : 'div'
+  const motionProps = isInteractive ? { whileHover, whileTap } : {}
 
   return (
     <Component
       className={cn(
         cardStyles.base,
-        cardStyles[variant],
-        isHoverable && cardStyles.hover,
-        isInteractive && cardStyles.active,
+        cardStyles.variants[variant],
+        isHoverable && 'hover:shadow-lg hover:-translate-y-1 transition-all duration-200',
         className
       )}
-      {...(isInteractive && {
-        whileHover: { scale: 1.02 },
-        whileTap: { scale: 0.98 }
-      })}
+      {...motionProps}
       {...props}
     >
       {children}
@@ -38,7 +45,7 @@ export function Card({
   )
 }
 
-interface CardHeaderProps extends React.HTMLAttributes<HTMLDivElement> {}
+type CardHeaderProps = React.HTMLAttributes<HTMLDivElement>
 
 Card.Header = function CardHeader({ className, children, ...props }: CardHeaderProps) {
   return (
@@ -48,7 +55,7 @@ Card.Header = function CardHeader({ className, children, ...props }: CardHeaderP
   )
 }
 
-interface CardContentProps extends React.HTMLAttributes<HTMLDivElement> {}
+type CardContentProps = React.HTMLAttributes<HTMLDivElement>
 
 Card.Content = function CardContent({ className, children, ...props }: CardContentProps) {
   return (
@@ -58,7 +65,7 @@ Card.Content = function CardContent({ className, children, ...props }: CardConte
   )
 }
 
-interface CardFooterProps extends React.HTMLAttributes<HTMLDivElement> {}
+type CardFooterProps = React.HTMLAttributes<HTMLDivElement>
 
 Card.Footer = function CardFooter({ className, children, ...props }: CardFooterProps) {
   return (
