@@ -1,97 +1,93 @@
-import { useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { ChevronUp, ChevronDown, Globe } from 'lucide-react'
+import { Fragment, useEffect, useState } from 'react'
+import { motion } from 'framer-motion'
+import { Menu, Transition } from '@headlessui/react'
+import { Globe } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { Analytics } from '@/app/lib/analytics'
 import { cn } from '@/app/lib/utils'
 
 type Language = {
   code: string
   nativeName: string
-  flag: string
 }
 
 const languages: Language[] = [
-  { code: 'de', nativeName: 'Deutsch', flag: '🇩🇪' },
-  { code: 'en', nativeName: 'English', flag: '🇬🇧' }
+  { code: 'de', nativeName: 'Deutsch' },
+  { code: 'en', nativeName: 'English' }
 ]
 
 export default function LanguageSwitcher() {
-  const [isOpen, setIsOpen] = useState(false)
   const { i18n } = useTranslation()
-  
-  // Sicherstellen, dass currentLang immer definiert ist
-  const currentLang = languages.find(lang => lang.code === i18n.language) || languages[0]
+  const [currentLang, setCurrentLang] = useState<Language>(languages[0])
 
-  const handleLanguageChange = (langCode: string) => {
-    i18n.changeLanguage(langCode)
-    setIsOpen(false)
+  useEffect(() => {
+    const lang = languages.find(l => l.code === i18n.language) || languages[0]
+    setCurrentLang(lang)
+  }, [i18n.language])
+
+  const handleLanguageChange = (lang: Language) => {
+    i18n.changeLanguage(lang.code)
+    setCurrentLang(lang)
+    Analytics.event({
+      action: 'language_change',
+      category: 'Language',
+      label: lang.code
+    })
   }
 
   return (
-    <div className="relative">
-      <button
-        onClick={() => setIsOpen(!isOpen)}
+    <Menu as="div" className="relative inline-block text-left">
+      <Menu.Button
         className={cn(
-          'inline-flex items-center justify-between gap-2 rounded-lg',
-          'border border-gray-700 bg-gray-800 px-3 py-2',
-          'text-sm font-medium text-white',
-          'hover:bg-gray-700 transition-colors',
-          'focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-900'
+          'flex items-center space-x-2 rounded-full',
+          'p-1.5 text-sm font-medium text-gray-300',
+          'hover:text-white transition-colors'
         )}
-        aria-expanded={isOpen}
-        aria-haspopup="listbox"
         aria-label={`Sprache ändern. Aktuelle Sprache: ${currentLang.nativeName}`}
       >
-        <Globe className="h-4 w-4" />
+        <Globe className="h-5 w-5" />
         <span>{currentLang.code.toUpperCase()}</span>
-        {isOpen ? (
-          <ChevronUp className="h-4 w-4" />
-        ) : (
-          <ChevronDown className="h-4 w-4" />
-        )}
-      </button>
+      </Menu.Button>
 
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.2 }}
-            className={cn(
-              'absolute right-0 z-10 mt-2 w-48',
-              'rounded-lg border border-gray-700 bg-gray-800',
-              'shadow-lg ring-1 ring-black ring-opacity-5'
-            )}
-          >
-            <ul
-              role="listbox"
-              aria-label="Verfügbare Sprachen"
-              className="py-1"
-            >
-              {languages.map((lang) => (
-                <li key={lang.code}>
-                  <button
+      <Transition
+        as={Fragment}
+        enter="transition ease-out duration-100"
+        enterFrom="transform opacity-0 scale-95"
+        enterTo="transform opacity-100 scale-100"
+        leave="transition ease-in duration-75"
+        leaveFrom="transform opacity-100 scale-100"
+        leaveTo="transform opacity-0 scale-95"
+      >
+        <Menu.Items
+          className={cn(
+            'absolute right-0 mt-2 w-48 origin-top-right rounded-lg',
+            'bg-gray-800 shadow-lg ring-1 ring-gray-700',
+            'focus:outline-none divide-y divide-gray-700'
+          )}
+        >
+          <div className="p-1">
+            {languages.map((lang) => (
+              <Menu.Item key={lang.code}>
+                {({ active }) => (
+                  <motion.button
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => handleLanguageChange(lang)}
                     className={cn(
-                      'flex w-full items-center gap-2 px-4 py-2 text-sm',
-                      'transition-colors',
-                      lang.code === currentLang.code
-                        ? 'bg-gray-700 text-white'
-                        : 'text-gray-300 hover:bg-gray-700'
+                      'flex w-full items-center rounded-md px-3 py-2',
+                      'text-sm font-medium text-gray-300',
+                      'hover:bg-gray-700/50 hover:text-white transition-colors',
+                      active && 'bg-gray-700/50 text-white'
                     )}
-                    onClick={() => handleLanguageChange(lang.code)}
-                    role="option"
                     aria-selected={lang.code === currentLang.code}
                   >
-                    <span>{lang.flag}</span>
-                    <span>{lang.nativeName}</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
+                    {lang.nativeName}
+                  </motion.button>
+                )}
+              </Menu.Item>
+            ))}
+          </div>
+        </Menu.Items>
+      </Transition>
+    </Menu>
   )
 }
