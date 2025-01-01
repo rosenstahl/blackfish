@@ -1,24 +1,18 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Settings, Shield, BarChart } from 'lucide-react'
-import { useCookieConsent } from '@/app/context/CookieConsentContext'
+import { useCookieConsent, type ConsentType } from '@/app/context/CookieConsentContext'
 import { Analytics } from '@/app/lib/analytics'
 import { cn } from '@/app/lib/utils'
 
-export interface ConsentType {
-  necessary: boolean;
-  functional: boolean;
-  analytics: boolean;
-}
-
 type CookieGroup = {
-  id: keyof ConsentType;
-  icon: React.ComponentType<{ className?: string }>;
-  title: string;
-  description: string;
-  color: string;
-  bgColor: string;
-  isRequired: boolean;
+  id: keyof ConsentType
+  icon: React.ComponentType<{ className?: string }>
+  title: string
+  description: string
+  color: string
+  bgColor: string
+  isRequired: boolean
 }
 
 const cookieGroups: CookieGroup[] = [
@@ -49,7 +43,7 @@ const cookieGroups: CookieGroup[] = [
     bgColor: 'bg-blue-500/20',
     isRequired: false
   }
-];
+]
 
 export default function CookieBanner() {
   const { consent, updateConsent, saveConsent } = useCookieConsent()
@@ -92,6 +86,8 @@ export default function CookieBanner() {
     if (!consent) return
     updateConsent(groupId, !consent[groupId])
   }
+
+  if (!consent) return null
 
   return (
     <AnimatePresence>
@@ -154,7 +150,7 @@ export default function CookieBanner() {
             </div>
 
             {/* Cookie Groups */}
-            {showDetails && consent && (
+            {showDetails && (
               <div className="space-y-4">
                 {cookieGroups.map((group) => (
                   <div

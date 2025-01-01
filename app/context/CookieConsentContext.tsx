@@ -1,114 +1,56 @@
-// app/context/CookieConsentContext.tsx
-'use client'
+import { createContext, useContext, useState, useEffect, type ReactNode } from 'react'
 
-import { createContext, useContext, useState, useEffect } from 'react'
-import { Analytics, Performance } from '@/app/lib/analytics'
-
-type ConsentType = {
-  necessary: boolean;
-  analytics: boolean;
-  marketing: boolean;
+export interface ConsentType {
+  necessary: boolean
+  functional: boolean
+  analytics: boolean
 }
 
 type CookieConsentContextType = {
-  consent: ConsentType;
-  updateConsent: (type: keyof ConsentType, value: boolean) => void;
-  saveConsent: () => void;
-  hasInteracted: boolean;
+  consent: ConsentType | null
+  updateConsent: (type: keyof ConsentType, value: boolean) => void
+  saveConsent: () => void
 }
+
+const CookieConsentContext = createContext<CookieConsentContextType | null>(null)
 
 const defaultConsent: ConsentType = {
   necessary: true,
-  analytics: false,
-  marketing: false,
+  functional: false,
+  analytics: false
 }
 
-const CookieConsentContext = createContext<CookieConsentContextType | undefined>(undefined)
-
-export function CookieConsentProvider({ children }: { children: React.ReactNode }) {
-  const [consent, setConsent] = useState<ConsentType>(defaultConsent)
-  const [hasInteracted, setHasInteracted] = useState(false)
+export function CookieConsentProvider({ children }: { children: ReactNode }) {
+  const [consent, setConsent] = useState<ConsentType | null>(null)
 
   useEffect(() => {
-    const storedConsent = localStorage.getItem('cookieConsent')
-    if (storedConsent) {
-      const parsedConsent = JSON.parse(storedConsent)
-      setConsent(parsedConsent)
-      setHasInteracted(true)
-
-      if (parsedConsent.analytics) {
-        Analytics.init()
-        Performance.measurePageLoad()
-        Performance.trackResources()
-        Performance.trackErrors()
+    // Load consent from localStorage on mount
+    const savedConsent = localStorage.getItem('cookieConsent')
+    if (savedConsent) {
+      try {
+        setConsent(JSON.parse(savedConsent))
+      } catch (error) {
+        console.error('Error parsing cookie consent:', error)
+        setConsent(defaultConsent)
       }
     }
   }, [])
 
-  useEffect(() => {
-    if (consent.analytics) {
-      const handleRouteChange = (url: string) => {
-        Analytics.pageview(url)
-      }
-  
-      // Speichere die Referenz der Funktion
-      const boundHandleRoute = () => handleRouteChange(window.location.pathname)
-      
-      // Initial pageview
-      handleRouteChange(window.location.pathname)
-      
-      // Füge Event Listener hinzu
-      window.addEventListener('popstate', boundHandleRoute)
-      
-      // Cleanup mit derselben Funktionsreferenz
-      return () => {
-        window.removeEventListener('popstate', boundHandleRoute)
-      }
-    }
-  }, [consent.analytics])
-
   const updateConsent = (type: keyof ConsentType, value: boolean) => {
-    setConsent(prev => ({
-      ...prev,
-      [type]: value
-    }))
+    setConsent(prev => {
+      if (!prev) return defaultConsent
+      return { ...prev, [type]: value }
+    })
   }
 
   const saveConsent = () => {
-    localStorage.setItem('cookieConsent', JSON.stringify(consent))
-    setHasInteracted(true)
-    
-    if (consent.analytics) {
-      Analytics.init()
-      Performance.measurePageLoad()
-      Performance.trackResources()
-      Performance.trackErrors()
-
-      // Initiales Tracking
-      Analytics.event({
-        action: 'consent_given',
-        category: 'Consent',
-        label: 'Analytics'
-      })
-    }
-
-    if (consent.marketing) {
-      // Hier Marketing-Tracking aktivieren
-      Analytics.event({
-        action: 'consent_given',
-        category: 'Consent',
-        label: 'Marketing'
-      })
+    if (consent) {
+      localStorage.setItem('cookieConsent', JSON.stringify(consent))
     }
   }
 
   return (
-    <CookieConsentContext.Provider value={{
-      consent,
-      updateConsent,
-      saveConsent,
-      hasInteracted
-    }}>
+    <CookieConsentContext.Provider value={{ consent, updateConsent, saveConsent }}>
       {children}
     </CookieConsentContext.Provider>
   )
@@ -116,8 +58,8 @@ export function CookieConsentProvider({ children }: { children: React.ReactNode 
 
 export function useCookieConsent() {
   const context = useContext(CookieConsentContext)
-  if (context === undefined) {
-    throw new Error('useCookieConsent must be used within a CookieConsentProvider')
+  if (!context) {
+    throw new Error('useCookieConsent must be used within CookieConsentProvider')
   }
   return context
 }
