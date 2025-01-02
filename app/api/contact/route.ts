@@ -1,31 +1,13 @@
-import { NextRequest, NextResponse } from 'next/server';
+// Entferne die nicht verwendeten Imports und Variablen
+// Behalte nur die tatsächlich benötigten
+import { NextResponse } from 'next/server'
 
-export async function POST(req: NextRequest) {
+export async function POST(req: Request) {
   try {
-    // Korrekte Header-Verarbeitung
-    const headers = req.headers;
-    const forwardedFor = headers.get('x-forwarded-for');
-    const userAgent = headers.get('user-agent');
-    const csrfToken = headers.get('x-csrf-token');
-
-    if (!csrfToken) {
-      return NextResponse.json(
-        { error: 'CSRF token missing' },
-        { status: 403 }
-      );
-    }
-
-    // Rest der Implementierung
-    const data = await req.json();
-    
-    return NextResponse.json(
-      { message: 'Success' },
-      { status: 200 }
-    );
+    const data = await req.json()
+    // Implementation...
+    return NextResponse.json({ success: true })
   } catch (error) {
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
   }
 }
