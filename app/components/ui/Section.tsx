@@ -8,20 +8,22 @@ type BaseSectionProps = {
 
 type SectionProps = BaseSectionProps & Omit<HTMLMotionProps<"section">, keyof BaseSectionProps>
 
+const styles = {
+  base: 'relative',
+  spacing: 'py-12 md:py-16 lg:py-24'
+}
+
 export function Section({
   className,
   as: Component = 'section',
   children,
   ...props
 }: SectionProps) {
-  const MotionComponent = motion[Component]
+  const MotionComponent = motion[Component] as typeof motion.section
 
   return (
     <MotionComponent
-      className={cn(
-        'relative py-12 md:py-16 lg:py-24',
-        className
-      )}
+      className={cn(styles.base, styles.spacing, className)}
       {...props}
     >
       {children}
