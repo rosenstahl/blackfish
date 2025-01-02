@@ -6,7 +6,7 @@ import { navigation, handleNavClick } from '@/app/utils/navigation'
 import { useTranslation } from 'react-i18next'
 import { Analytics } from '@/app/lib/analytics'
 import { cn } from '@/app/lib/utils'
-import { useDebounce } from '@/hooks/useDebounce'
+import { useDebounce } from '@/app/hooks/useDebounce'
 import LanguageSwitcher from '../common/LanguageSwitcher'
 import { buttonStyles, transitionStyles } from '@/app/styles/shared'
 import { menuAnimation } from '@/app/styles/animations'
@@ -188,7 +188,7 @@ export default function Header({ className }: Props) {
             )}
           >
             <div className="flex flex-col items-center justify-center min-h-screen space-y-8 p-4">
-              {navigation.map((item, index) => (
+              {navigation.map((item) => (
                 <motion.button
                   key={item.name}
                   {...menuAnimation}
