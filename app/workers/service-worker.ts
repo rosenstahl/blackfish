@@ -1,8 +1,10 @@
 /// <reference lib="webworker" />
+/// <reference lib="dom" />
+/// <reference no-default-lib="true"/>
 import { clientsClaim } from 'workbox-core'
 import { ExpirationPlugin } from 'workbox-expiration'
-import { precacheAndRoute, createHandlerBoundToURL } from 'workbox-precaching'
-import { registerRoute, NavigationRoute } from 'workbox-routing'
+import { precacheAndRoute, createHandlerBoundToURL, PrecacheRoute } from 'workbox-precaching'
+import { registerRoute, NavigationRoute, RouteHandlerCallback, Route } from 'workbox-routing'
 import { 
   StaleWhileRevalidate, 
   CacheFirst, 
@@ -11,6 +13,7 @@ import {
 } from 'workbox-strategies'
 import { CacheableResponsePlugin } from 'workbox-cacheable-response'
 import { BackgroundSyncPlugin } from 'workbox-background-sync'
+import type { PushEvent, SyncEvent } from '@types/serviceworker'
 
 declare const self: ServiceWorkerGlobalScope
 
@@ -25,7 +28,7 @@ const CACHE_NAMES = {
   fonts: 'fonts-v1',
   pages: 'pages-v1',
   api: 'api-cache-v1'
-}
+} as const
 
 // Precache critical assets
 precacheAndRoute(self.__WB_MANIFEST)
@@ -92,7 +95,7 @@ registerRoute(
   })
 )
 
-// Fonts - Cache First with Long Expiration
+// Font Caching - Cache First with Long Expiration
 registerRoute(
   ({ request }) => request.destination === 'font',
   new CacheFirst({
@@ -107,22 +110,6 @@ registerRoute(
         statuses: [0, 200]
       })
     ]
-  })
-)
-
-// HTML Pages - Network First with Cache Fallback
-registerRoute(
-  ({ request }) => request.mode === 'navigate',
-  new NetworkFirst({
-    cacheName: CACHE_NAMES.pages,
-    plugins: [
-      new ExpirationPlugin({
-        maxEntries: 25,
-        maxAgeSeconds: 24 * 60 * 60, // 24 hours
-        purgeOnQuotaError: true
-      })
-    ],
-    networkTimeoutSeconds: 5
   })
 )
 
@@ -143,6 +130,7 @@ if (navigationPreload) {
               if (!Object.values(CACHE_NAMES).includes(key)) {
                 return caches.delete(key)
               }
+              return Promise.resolve()
             })
           )
         )
@@ -173,12 +161,13 @@ self.addEventListener('fetch', (event) => {
           }
 
           // Then try network
-          return await fetch(event.request)
+          const networkResponse = await fetch(event.request)
+          return networkResponse
         } catch (error) {
           // If both fail, show offline page
           const cache = await caches.open(CACHE_NAMES.pages)
           const cachedResponse = await cache.match(offlineFallbackPage)
-          return cachedResponse
+          return cachedResponse ?? new Response('Offline')
         }
       })()
     )
@@ -200,7 +189,7 @@ registerRoute(
 
 // Periodic Sync for Content Updates
 if ('periodicsync' in self.registration) {
-  self.addEventListener('periodicsync', (event) => {
+  self.addEventListener('periodicsync', (event: SyncEvent) => {
     if (event.tag === 'content-sync') {
       event.waitUntil(syncContent())
     }
@@ -214,11 +203,11 @@ async function syncContent() {
 }
 
 // Handle Push Notifications
-self.addEventListener('push', (event) => {
+self.addEventListener('push', (event: PushEvent) => {
   if (!event.data) return
 
   const data = event.data.json()
-  const options = {
+  const options: NotificationOptions = {
     body: data.body,
     icon: '/icon-192x192.png',
     badge: '/badge.png',
@@ -256,12 +245,12 @@ self.addEventListener('notificationclick', (event) => {
 })
 
 // Error Handling & Reporting
-self.addEventListener('error', (event) => {
+self.addEventListener('error', (event: ErrorEvent) => {
   // Log error to analytics
   console.error('Service Worker Error:', event.error)
 })
 
-self.addEventListener('unhandledrejection', (event) => {
+self.addEventListener('unhandledrejection', (event: PromiseRejectionEvent) => {
   // Log unhandled promise rejection
   console.error('Service Worker Unhandled Rejection:', event.reason)
 })
