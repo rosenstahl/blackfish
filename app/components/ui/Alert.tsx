@@ -1,7 +1,6 @@
-import { cn } from '@/app/lib/utils'
-import { alertStyles } from '@/app/styles/components'
-import { AlertCircle, CheckCircle, Info, XCircle } from 'lucide-react'
 import { motion, type HTMLMotionProps } from 'framer-motion'
+import { AlertCircle, CheckCircle, Info, XCircle } from 'lucide-react'
+import { cn } from '@/app/lib/utils'
 
 type AlertVariant = 'info' | 'success' | 'warning' | 'error'
 
@@ -21,6 +20,23 @@ const variants = {
   exit: { opacity: 0, y: -10 }
 }
 
+const icons = {
+  info: Info,
+  success: CheckCircle,
+  warning: AlertCircle,
+  error: XCircle
+}
+
+const styles = {
+  base: 'rounded-lg p-4',
+  variants: {
+    info: 'bg-blue-500/10 border border-blue-500/20 text-blue-400',
+    success: 'bg-green-500/10 border border-green-500/20 text-green-400',
+    warning: 'bg-yellow-500/10 border border-yellow-500/20 text-yellow-400',
+    error: 'bg-red-500/10 border border-red-500/20 text-red-400'
+  }
+}
+
 export function Alert({
   className,
   variant = 'info',
@@ -30,25 +46,13 @@ export function Alert({
   children,
   ...props
 }: AlertProps) {
-  const icons = {
-    info: Info,
-    success: CheckCircle,
-    warning: AlertCircle,
-    error: XCircle
-  }
-
   const Icon = icons[variant]
   const Component = animate ? motion.div : 'div'
-
   const motionProps = animate ? variants : {}
 
   return (
     <Component
-      className={cn(
-        alertStyles.base,
-        alertStyles.variants[variant],
-        className
-      )}
+      className={cn(styles.base, styles.variants[variant], className)}
       {...motionProps}
       role="alert"
       {...props}
