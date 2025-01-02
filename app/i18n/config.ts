@@ -1,5 +1,6 @@
 // app/i18n/config.ts
-import i18n, { InitOptions } from 'i18next'
+import i18n from 'i18next'
+import type { InitOptions } from 'i18next'
 import { initReactI18next } from 'react-i18next'
 
 const resources = {
@@ -32,8 +33,8 @@ i18n
   .init(config);
 
 // Error Handler für fehlende Übersetzungen
-i18n.on('missingKey', (lngs, namespace, key) => {
-  console.warn(`Missing translation key: ${key} for languages: ${lngs.join(', ')}`);
+i18n.on('missingKey', (_lngs, _namespace, key) => {
+  console.warn(`Missing translation key: ${key}`);
 });
 
 export default i18n;
