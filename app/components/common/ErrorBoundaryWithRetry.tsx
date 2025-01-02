@@ -1,4 +1,5 @@
-import { type Component, type ReactNode, createContext, useContext } from 'react'
+import React from 'react'
+import { type ReactNode, createContext, useContext } from 'react'
 import { Analytics } from '@/app/lib/analytics'
 
 type Props = {
@@ -32,7 +33,7 @@ export function useRetry(): RetryContextType {
   return context
 }
 
-export class ErrorBoundaryWithRetry extends Component<Props, State> {
+export class ErrorBoundaryWithRetry extends React.Component<Props, State> {
   constructor(props: Props) {
     super(props)
     this.state = {
