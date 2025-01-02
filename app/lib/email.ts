@@ -1,47 +1,31 @@
-import nodemailer from 'nodemailer'
+import nodemailer from 'nodemailer';
+import { env } from './env';
 
-type EmailConfig = {
-  host: string
-  port: number
+const transporter = nodemailer.createTransport({
+  host: env.SMTP_HOST,
+  port: env.SMTP_PORT,
   auth: {
-    user: string
-    pass: string
+    user: env.SMTP_USER,
+    pass: env.SMTP_PASS
   }
-}
-
-const emailConfig: EmailConfig = {
-  host: process.env['SMTP_HOST'] || '',
-  port: Number(process.env['SMTP_PORT']) || 587,
-  auth: {
-    user: process.env['SMTP_USER'] || '',
-    pass: process.env['SMTP_PASS'] || ''
-  }
-}
-
-const transporter = nodemailer.createTransport(emailConfig)
+});
 
 type EmailData = {
-  from: string
-  to: string
-  subject: string
-  text: string
-  html?: string
-}
+  subject: string;
+  text: string;
+  html?: string;
+  from?: string;
+  to?: string;
+};
 
-export async function sendEmail(data: EmailData) {
-  // Setze default Werte
+export async function sendEmail(data: EmailData): Promise<any> {
   const emailData = {
-    from: process.env['SMTP_FROM'] || 'noreply@example.com',
-    to: process.env['ADMIN_EMAIL'] || 'admin@example.com',
-    ...data
-  }
+    from: data.from || env.SMTP_FROM,
+    to: data.to || env.ADMIN_EMAIL,
+    subject: data.subject,
+    text: data.text,
+    html: data.html
+  };
 
-  try {
-    const info = await transporter.sendMail(emailData)
-    console.log('Email sent:', info.messageId)
-    return info
-  } catch (error) {
-    console.error('Error sending email:', error)
-    throw error
-  }
+  return transporter.sendMail(emailData);
 }

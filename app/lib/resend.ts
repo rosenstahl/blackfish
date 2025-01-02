@@ -1,11 +1,6 @@
-import { Resend } from 'resend'
+import { Resend } from 'resend';
+import { env } from './env';
 
-// Create a singleton instance of Resend
-const resendClient = new Resend(process.env.RESEND_API_KEY)
+const resendClient = new Resend(env.RESEND_API_KEY);
 
-// Throw an error if the API key is missing
-if (!process.env.RESEND_API_KEY) {
-  throw new Error('RESEND_API_KEY is not defined in environment variables')
-}
-
-export const resend = resendClient 
+export { resendClient as resend };
