@@ -1,5 +1,3 @@
-// Entferne die nicht verwendeten Imports und Variablen
-// Behalte nur die tatsächlich benötigten
 import { NextResponse } from 'next/server'
 
 export async function POST(req: Request) {
