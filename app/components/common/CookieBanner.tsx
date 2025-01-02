@@ -4,10 +4,11 @@ import { Settings, Shield, BarChart } from 'lucide-react'
 import { useCookieConsent, type ConsentType } from '@/app/context/CookieConsentContext'
 import { Analytics } from '@/app/lib/analytics'
 import { cn } from '@/app/lib/utils'
+import type { LucideIcon } from 'lucide-react'
 
 type CookieGroup = {
   id: keyof ConsentType
-  icon: React.ComponentType<{ className?: string }>
+  icon: LucideIcon
   title: string
   description: string
   color: string
