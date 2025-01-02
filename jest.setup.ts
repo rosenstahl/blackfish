@@ -1,30 +1,12 @@
 import '@testing-library/jest-dom'
-import { setupServer } from 'msw/node'
-import { handlers } from './__mocks__/handlers'
 import { TextEncoder, TextDecoder } from 'util'
+import { server } from './__mocks__/server'
 
-// MSW Server Setup
-export const server = setupServer(...handlers)
-
-// Global Setup
+// Polyfills
 global.TextEncoder = TextEncoder
-global.TextDecoder = TextDecoder as any
-global.ResizeObserver = class ResizeObserver {
-  observe() {}
-  unobserve() {}
-  disconnect() {}
-}
+global.TextDecoder = TextDecoder as typeof global.TextDecoder
 
-// Mock IntersectionObserver
-global.IntersectionObserver = class IntersectionObserver {
-  constructor(callback: any) {}
-  disconnect() {}
-  observe() {}
-  unobserve() {}
-  takeRecords() { return [] }
-} as any
-
-// Mock window.matchMedia
+// Mocken von window.matchMedia
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
   value: jest.fn().mockImplementation(query => ({
@@ -35,71 +17,61 @@ Object.defineProperty(window, 'matchMedia', {
     removeListener: jest.fn(),
     addEventListener: jest.fn(),
     removeEventListener: jest.fn(),
-    dispatchEvent: jest.fn(),
-  })),
+    dispatchEvent: jest.fn()
+  }))
 })
 
-// Mock window.scrollTo
-Object.defineProperty(window, 'scrollTo', {
-  writable: true,
-  value: jest.fn(),
-})
+// Mocken von window.scrollTo
+window.scrollTo = jest.fn()
 
-// Mock console methods for tests
-const originalConsoleError = console.error
-const originalConsoleWarn = console.warn
-const originalConsoleLog = console.log
+class ResizeObserverMock {
+  observe = jest.fn()
+  unobserve = jest.fn()
+  disconnect = jest.fn()
+}
 
-beforeAll(() => {
-  console.error = jest.fn()
-  console.warn = jest.fn()
-  console.log = jest.fn()
-  server.listen({ onUnhandledRequest: 'error' })
-})
+window.ResizeObserver = ResizeObserverMock
 
-afterEach(() => {
-  server.resetHandlers()
-  jest.clearAllMocks()
-  localStorage.clear()
-  sessionStorage.clear()
-})
+// Intersections Observer Mock
+class IntersectionObserverMock {
+  observe = jest.fn()
+  unobserve = jest.fn()
+  disconnect = jest.fn()
+}
 
-afterAll(() => {
-  console.error = originalConsoleError
-  console.warn = originalConsoleWarn
-  console.log = originalConsoleLog
-  server.close()
-})
+window.IntersectionObserver = IntersectionObserverMock
 
-// Custom Jest Matchers
+// MSW Setup
+beforeAll(() => server.listen({ onUnhandledRequest: 'error' }))
+afterEach(() => server.resetHandlers())
+afterAll(() => server.close())
+
+// Custom matchers
 expect.extend({
-  toBeWithinRange(received: number, floor: number, ceiling: number) {
-    const pass = received >= floor && received <= ceiling
-    if (pass) {
+  toHaveBeenCalledAfter(received: jest.Mock, expected: jest.Mock) {
+    const receivedCalls = received.mock.invocationCallOrder
+    const expectedCalls = expected.mock.invocationCallOrder
+
+    if (receivedCalls.length === 0) {
       return {
-        message: () =>
-          `expected ${received} not to be within range ${floor} - ${ceiling}`,
-        pass: true,
-      }
-    } else {
-      return {
-        message: () =>
-          `expected ${received} to be within range ${floor} - ${ceiling}`,
         pass: false,
+        message: () => `Expected ${received.getMockName()} to be called after ${expected.getMockName()}, but it was never called`
       }
     }
-  },
-})
 
-// Error handling for unhandled rejections and exceptions
-process.on('unhandledRejection', (reason: string) => {
-  console.error('UNHANDLED REJECTION! 💥 Shutting down...', reason)
-  throw new Error(reason)
-})
+    if (expectedCalls.length === 0) {
+      return {
+        pass: false,
+        message: () => `Expected ${received.getMockName()} to be called after ${expected.getMockName()}, but ${expected.getMockName()} was never called`
+      }
+    }
 
-// Custom Environment Variables for Testing
-process.env = {
-  ...process.env,
-  NEXT_PUBLIC_API_URL: 'http://localhost:3000/api',
-  NODE_ENV: 'test',
-}
+    const lastExpectedCall = Math.max(...expectedCalls)
+    const firstReceivedCall = Math.min(...receivedCalls)
+
+    return {
+      pass: firstReceivedCall > lastExpectedCall,
+      message: () => `Expected ${received.getMockName()} to be called after ${expected.getMockName()}`
+    }
+  }
+})
