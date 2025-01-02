@@ -1,5 +1,5 @@
 // app/lib/metadata.ts
-import { Metadata } from 'next'
+import type { Metadata } from 'next'
 
 const defaultMetadata: Metadata = {
   title: {
