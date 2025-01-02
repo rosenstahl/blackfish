@@ -1,4 +1,4 @@
-import { MotionProps } from 'framer-motion'
+import type { MotionProps } from 'framer-motion'
 
 export const menuAnimation: MotionProps = {
   initial: { opacity: 0, y: -10 },
