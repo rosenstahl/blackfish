@@ -1,9 +1,8 @@
 import { cn } from '@/app/lib/utils'
 import { motion, type HTMLMotionProps } from 'framer-motion'
-import { cardStyles } from '@/app/styles/shared'
 
 type BaseCardProps = {
-  variant?: 'light' | 'dark'
+  variant?: 'primary' | 'secondary'
   isHoverable?: boolean
   isInteractive?: boolean
   children?: React.ReactNode
@@ -11,19 +10,29 @@ type BaseCardProps = {
 
 type CardProps = BaseCardProps & Omit<HTMLMotionProps<"div">, keyof BaseCardProps>
 
-const cardVariants = {
+const variants = {
   hover: { scale: 1.02 },
   tap: { scale: 0.98 }
 }
 
+const styles = {
+  base: 'relative rounded-2xl bg-gray-800/50 backdrop-blur-sm p-6 border border-gray-700/50',
+  variants: {
+    primary: 'bg-gradient-to-br from-blue-500/5 to-purple-500/5',
+    secondary: 'hover:border-gray-600'
+  },
+  hover: 'hover:shadow-lg hover:-translate-y-1 transition-all duration-200',
+  active: 'cursor-pointer'
+}
+
 export function Card({
   className,
-  variant = 'light',
+  variant = 'primary',
   isHoverable = false,
   isInteractive = false,
   children,
-  whileHover = cardVariants.hover,
-  whileTap = cardVariants.tap,
+  whileHover = variants.hover,
+  whileTap = variants.tap,
   ...props
 }: CardProps) {
   const Component = isInteractive ? motion.div : 'div'
@@ -32,9 +41,10 @@ export function Card({
   return (
     <Component
       className={cn(
-        cardStyles.base,
-        cardStyles.variants[variant],
-        isHoverable && 'hover:shadow-lg hover:-translate-y-1 transition-all duration-200',
+        styles.base,
+        styles.variants[variant],
+        isHoverable && styles.hover,
+        isInteractive && styles.active,
         className
       )}
       {...motionProps}
@@ -45,9 +55,9 @@ export function Card({
   )
 }
 
-type CardHeaderProps = React.HTMLAttributes<HTMLDivElement>
+type CardSectionProps = React.HTMLAttributes<HTMLDivElement>
 
-Card.Header = function CardHeader({ className, children, ...props }: CardHeaderProps) {
+Card.Header = function CardHeader({ className, children, ...props }: CardSectionProps) {
   return (
     <div className={cn('px-6 py-4 border-b border-gray-200/10', className)} {...props}>
       {children}
@@ -55,9 +65,7 @@ Card.Header = function CardHeader({ className, children, ...props }: CardHeaderP
   )
 }
 
-type CardContentProps = React.HTMLAttributes<HTMLDivElement>
-
-Card.Content = function CardContent({ className, children, ...props }: CardContentProps) {
+Card.Content = function CardContent({ className, children, ...props }: CardSectionProps) {
   return (
     <div className={cn('px-6 py-4', className)} {...props}>
       {children}
@@ -65,9 +73,7 @@ Card.Content = function CardContent({ className, children, ...props }: CardConte
   )
 }
 
-type CardFooterProps = React.HTMLAttributes<HTMLDivElement>
-
-Card.Footer = function CardFooter({ className, children, ...props }: CardFooterProps) {
+Card.Footer = function CardFooter({ className, children, ...props }: CardSectionProps) {
   return (
     <div 
       className={cn('px-6 py-4 bg-gray-50/5 border-t border-gray-200/10', className)} 
