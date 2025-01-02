@@ -12,6 +12,7 @@ type ValidationRules<T> = {
 export function useFormValidation<T extends Record<string, any>>(initialData: T, rules: ValidationRules<T>) {
   const [data, setData] = useState<T>(initialData)
   const [errors, setErrors] = useState<Partial<Record<keyof T, string>>>({})
+  const [touched, setTouched] = useState<Partial<Record<keyof T, boolean>>>({})
 
   const validate = useCallback((field: keyof T, value: T[keyof T]): boolean => {
     const fieldRules = rules[field]
@@ -34,20 +35,29 @@ export function useFormValidation<T extends Record<string, any>>(initialData: T,
 
   const handleChange = useCallback((field: keyof T, value: T[keyof T]) => {
     setData(prev => ({ ...prev, [field]: value }))
-    validate(field, value)
-  }, [validate])
+    if (touched[field]) {
+      validate(field, value)
+    }
+  }, [touched, validate])
+
+  const handleBlur = useCallback((field: keyof T) => {
+    setTouched(prev => ({ ...prev, [field]: true }))
+  }, [])
 
   const validateAll = useCallback((): boolean => {
     let isValid = true
     const newErrors: Partial<Record<keyof T, string>> = {}
+    const newTouched: Partial<Record<keyof T, boolean>> = {}
 
     Object.keys(rules).forEach((field) => {
-      const fieldRules = rules[field as keyof T]
+      const key = field as keyof T
+      newTouched[key] = true
+      const fieldRules = rules[key]
       if (!fieldRules) return
 
       for (const rule of fieldRules) {
-        if (!rule.validator(data[field as keyof T])) {
-          newErrors[field as keyof T] = rule.message
+        if (!rule.validator(data[key])) {
+          newErrors[key] = rule.message
           isValid = false
           break
         }
@@ -55,14 +65,18 @@ export function useFormValidation<T extends Record<string, any>>(initialData: T,
     })
 
     setErrors(newErrors)
+    setTouched(newTouched)
     return isValid
   }, [data, rules])
 
   return {
-    data,
+    values: data,
     errors,
-    setData,
+    touched,
+    setValues: setData,
+    setTouched,
     handleChange,
+    handleBlur,
     validate,
     validateAll,
   }
