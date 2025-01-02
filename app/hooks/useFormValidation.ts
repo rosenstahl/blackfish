@@ -1,72 +1,69 @@
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 
-type ValidationRule = {
-  required?: boolean
-  minLength?: number
-  maxLength?: number
-  pattern?: RegExp
+type ValidationRule<T> = {
+  validator: (value: T) => boolean
+  message: string
 }
 
 type ValidationRules<T> = {
-  [K in keyof T]: ValidationRule
+  [K in keyof T]?: ValidationRule<T[K]>[]
 }
 
-export function useFormValidation<T extends Record<string, any>>(
-  initialValues: T,
-  validationRules: ValidationRules<T>
-) {
-  const [values, setValues] = useState<T>(initialValues)
+export function useFormValidation<T extends Record<string, any>>(initialData: T, rules: ValidationRules<T>) {
+  const [data, setData] = useState<T>(initialData)
   const [errors, setErrors] = useState<Partial<Record<keyof T, string>>>({})
-  const [touched, setTouched] = useState<Partial<Record<keyof T, boolean>>>({})
 
-  const validateField = (name: keyof T, value: any): string | undefined => {
-    const rules = validationRules[name]
-    
-    if (!rules) return undefined
+  const validate = useCallback((field: keyof T, value: T[keyof T]): boolean => {
+    const fieldRules = rules[field]
+    if (!fieldRules) return true
 
-    if (rules.required && (!value || value.trim() === '')) {
-      return 'Dieses Feld ist erforderlich'
+    for (const rule of fieldRules) {
+      if (!rule.validator(value)) {
+        setErrors(prev => ({ ...prev, [field]: rule.message }))
+        return false
+      }
     }
 
-    if (rules.minLength && value && value.length < rules.minLength) {
-      return `Mindestens ${rules.minLength} Zeichen erforderlich`
-    }
+    setErrors(prev => {
+      const newErrors = { ...prev }
+      delete newErrors[field]
+      return newErrors
+    })
+    return true
+  }, [rules])
 
-    if (rules.maxLength && value && value.length > rules.maxLength) {
-      return `Maximal ${rules.maxLength} Zeichen erlaubt`
-    }
+  const handleChange = useCallback((field: keyof T, value: T[keyof T]) => {
+    setData(prev => ({ ...prev, [field]: value }))
+    validate(field, value)
+  }, [validate])
 
-    if (rules.pattern && value && !rules.pattern.test(value)) {
-      return 'Ungültiges Format'
-    }
-
-    return undefined
-  }
-
-  const validate = () => {
-    const newErrors: Partial<Record<keyof T, string>> = {}
+  const validateAll = useCallback((): boolean => {
     let isValid = true
+    const newErrors: Partial<Record<keyof T, string>> = {}
 
-    Object.keys(validationRules).forEach((key) => {
-      const error = validateField(key as keyof T, values[key as keyof T])
-      if (error) {
-        newErrors[key as keyof T] = error
-        isValid = false
+    Object.keys(rules).forEach((field) => {
+      const fieldRules = rules[field as keyof T]
+      if (!fieldRules) return
+
+      for (const rule of fieldRules) {
+        if (!rule.validator(data[field as keyof T])) {
+          newErrors[field as keyof T] = rule.message
+          isValid = false
+          break
+        }
       }
     })
 
     setErrors(newErrors)
     return isValid
-  }
+  }, [data, rules])
 
   return {
-    values,
+    data,
     errors,
-    touched,
-    setValues,
-    setErrors,
-    setTouched,
-    validateField,
+    setData,
+    handleChange,
     validate,
+    validateAll,
   }
 }
