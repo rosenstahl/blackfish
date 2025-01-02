@@ -6,14 +6,14 @@ interface RateLimitData {
   lastRequest: number;
   blocked: boolean;
   ipAddress: string;
-  userAgent?: string;
+  userAgent: string | null;
 }
 
 const rateLimits = new Map<string, RateLimitData>();
 
 export function rateLimit(
   ip: string, 
-  userAgent?: string,
+  userAgent: string | null = null,
   limit: number = 5, 
   windowMs: number = MINUTE
 ): boolean {
@@ -26,7 +26,7 @@ export function rateLimit(
     lastRequest: now,
     blocked: false,
     ipAddress: ip,
-    userAgent
+    userAgent: userAgent || null
   };
 
   // Blocklist Check
