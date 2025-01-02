@@ -1,13 +1,13 @@
 import { forwardRef } from 'react'
 import { formStyles } from '@/app/styles/components'
 
-interface Props extends React.InputHTMLAttributes<HTMLInputElement> {
+export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string
   error?: string
   hint?: string
 }
 
-export const Input = forwardRef<HTMLInputElement, Props>((
+export const Input = forwardRef<HTMLInputElement, InputProps>((
   { label, error, hint, className, ...props },
   ref
 ) => {
