@@ -1,91 +1,48 @@
-// app/imprint/page.tsx
+import { type Metadata } from 'next'
+import LegalPageLayout from '@/app/components/layouts/LegalPageLayout'
+
+export const metadata: Metadata = {
+  title: 'Impressum | BLACKFISH.DIGITAL',
+  description: 'Rechtliche Informationen und Kontaktdaten'
+}
+
 export default function ImpressumPage() {
   return (
     <LegalPageLayout
       title="Impressum"
-      description="Gesetzliche Angaben gemäß § 5 TMG"
-      schemaType="AboutPage"
-      lastUpdated="Dezember 2024"
+      description="Rechtliche Informationen und Kontaktdaten"
     >
-      <section>
-        <h2 className="text-2xl font-semibold text-white mb-4">
-          Angaben gemäß § 5 TMG
-        </h2>
-        <address className="not-italic">
-          BLACKFISH.DIGITAL<br />
-          Rheinische Straße 220<br />
-          44147 Dortmund
-        </address>
-      </section>
-
-      {/* Rest des Impressums ... */}
+      {/* Impressum-Content */}
+      <h2>Angaben gemäß § 5 TMG</h2>
+      {/* ... Rest des Impressum-Inhalts ... */}
     </LegalPageLayout>
   )
 }
 
-// app/privacy/page.tsx
-export default function DatenschutzPage() {
+// Datenschutz-Page
+export function DatenschutzPage() {
   return (
     <LegalPageLayout
       title="Datenschutzerklärung"
-      description="Informationen zur Verarbeitung Ihrer personenbezogenen Daten"
-      schemaType="PrivacyPolicy"
-      lastUpdated="Dezember 2024"
+      description="Informationen zum Schutz Ihrer Daten"
     >
-      <section>
-        <h2 className="text-2xl font-semibold text-white mb-4">
-          1. Datenschutz auf einen Blick
-        </h2>
-        <h3 className="text-xl font-medium text-white mb-2">
-          Allgemeine Hinweise
-        </h3>
-        <p>
-          Die folgenden Hinweise geben einen einfachen Überblick darüber, 
-          was mit Ihren personenbezogenen Daten passiert...
-        </p>
-      </section>
-
-      {/* Rest der Datenschutzerklärung ... */}
+      {/* Datenschutz-Content */}
+      <h2>Datenschutzerklärung</h2>
+      {/* ... Rest des Datenschutz-Inhalts ... */}
     </LegalPageLayout>
   )
 }
 
-// app/terms/page.tsx
-export default function AGBPage() {
+// AGB-Page
+export function AGBPage() {
   return (
     <LegalPageLayout
       title="Allgemeine Geschäftsbedingungen"
-      description="Unsere allgemeinen Geschäftsbedingungen für eine faire Zusammenarbeit"
-      schemaType="TermsOfService"
-      lastUpdated="Dezember 2024"
+      description="Unsere AGB für Geschäftsbeziehungen"
     >
-      <section>
-        <h2 className="text-2xl font-semibold text-white mb-4">
-          §1 Geltungsbereich
-        </h2>
-        <p>
-          Diese Geschäftsbedingungen gelten für alle Verträge zwischen 
-          BLACKFISH.DIGITAL und ihren Auftraggebern...
-        </p>
-      </section>
-
-      {/* Rest der AGB ... */}
+      {/* AGB-Content */}
+      <h2>Allgemeine Geschäftsbedingungen</h2>
+      {/* ... Rest der AGB-Inhalte ... */}
     </LegalPageLayout>
   )
-}
-
-// Optimierte Metadaten für jede Seite
-export const metadata = {
-  impressum: {
-    title: 'Impressum | BLACKFISH.DIGITAL',
-    description: 'Gesetzliche Angaben und Informationen zu BLACKFISH.DIGITAL gemäß § 5 TMG.',
-  },
-  datenschutz: {
-    title: 'Datenschutzerklärung | BLACKFISH.DIGITAL',
-    description: 'Informationen zum Datenschutz und zur Verarbeitung Ihrer personenbezogenen Daten.',
-  },
-  agb: {
-    title: 'AGB | BLACKFISH.DIGITAL',
-    description: 'Allgemeine Geschäftsbedingungen für die Zusammenarbeit mit BLACKFISH.DIGITAL.',
-  }
 }
