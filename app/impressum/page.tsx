@@ -37,7 +37,7 @@ export default function ImpressumPage() {
   const { t } = useTranslation()
 
   useEffect(() => {
-    Analytics.pageview('/impressum')
+    Analytics.pageView('/impressum')
   }, [])
 
   const fadeIn = {
