@@ -1,67 +1,48 @@
-import { forwardRef } from 'react'
+import { FC, SelectHTMLAttributes } from 'react'
 import { cn } from '@/app/lib/utils'
-import { formStyles } from '@/app/styles/components'
 
-export interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
+type SelectProps = {
+  label?: string
   error?: string
   hint?: string
-  label?: string
-  options: Array<{ value: string; label: string }>
+  className?: string
+} & SelectHTMLAttributes<HTMLSelectElement>
+
+export const Select: FC<SelectProps> = ({
+  label,
+  error,
+  hint,
+  className,
+  children,
+  ...props
+}) => {
+  return (
+    <div className={cn('space-y-2', className)}>
+      {label && (
+        <label htmlFor={props.id} className="block text-sm font-medium text-gray-900 dark:text-white">
+          {label}
+        </label>
+      )}
+
+      <select
+        {...props}
+        className={cn(
+          'block w-full rounded-md border-0 py-1.5 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-indigo-600 sm:text-sm sm:leading-6 dark:bg-gray-800 dark:border-gray-700 dark:text-white dark:ring-gray-700',
+          error && 'ring-red-300 dark:ring-red-500'
+        )}
+      >
+        {children}
+      </select>
+
+      {error && (
+        <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+      )}
+
+      {hint && !error && (
+        <p className="text-sm text-gray-500 dark:text-gray-400">{hint}</p>
+      )}
+    </div>
+  )
 }
-
-export const Select = forwardRef<HTMLSelectElement, SelectProps>(
-  ({ className, error, hint, label, id, options, ...props }, ref) => {
-    const selectId = id || props.name
-
-    return (
-      <div className="space-y-1">
-        {label && (
-          <label
-            htmlFor={selectId}
-            className={formStyles.label}
-          >
-            {label}
-          </label>
-        )}
-        <select
-          ref={ref}
-          id={selectId}
-          className={cn(
-            formStyles.select,
-            error && 'border-red-300 dark:border-red-700 focus:border-red-500 focus:ring-red-500',
-            className
-          )}
-          aria-invalid={error ? 'true' : undefined}
-          aria-describedby={
-            error ? `${selectId}-error` : hint ? `${selectId}-hint` : undefined
-          }
-          {...props}
-        >
-          {options.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-        {error && (
-          <p 
-            id={`${selectId}-error`}
-            className={formStyles.error}
-          >
-            {error}
-          </p>
-        )}
-        {!error && hint && (
-          <p 
-            id={`${selectId}-hint`}
-            className={formStyles.hint}
-          >
-            {hint}
-          </p>
-        )}
-      </div>
-    )
-  }
-)
 
 Select.displayName = 'Select'

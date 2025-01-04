@@ -1,1 +1,45 @@
-aW1wb3J0IHsgRkMgfSBmcm9tICdyZWFjdCcKaW1wb3J0IHsgY24gfSBmcm9tICdAL2FwcC9saWIvdXRpbHMnCgp0eXBlIElucHV0UHJvcHMgPSB7CiAgbGFiZWw/OiBzdHJpbmcKICBlcnJvcj86IHN0cmluZwogIGhpbnQ/OiBzdHJpbmcKICBjbGFzc05hbWU/OiBzdHJpbmcKfSAmIFJlYWN0LklucHV0SFRNTEF0dHJpYnV0ZXM8SFRNTElucHV0RWxlbWVudD4KCmV4cG9ydCBjb25zdCBJbnB1dDogRkM8SW5wdXRQcm9wcz4gPSAoewogIGxhYmVsLAogIGVycm9yLAogIGhpbnQsCiAgY2xhc3NOYW1lLAogIC4uLnByb3BzCn0pID0+IHsKICByZXR1cm4gKAogICAgPGRpdiBjbGFzc05hbWU9e2NuKCdzcGFjZS15LTInLCBjbGFzc05hbWUpfT4KICAgICAge2xhYmVsICYmICgKICAgICAgICA8bGFiZWwgaHRtbEZvcj17cHJvcHMuaWR9IGNsYXNzTmFtZT0iYmxvY2sgdGV4dC1zbSBmb250LW1lZGl1bSB0ZXh0LWdyYXktOTAwIGRhcms6dGV4dC13aGl0ZSI+CiAgICAgICAgICB7bGFiZWx9CiAgICAgICAgPC9sYWJlbD4KICAgICAgKX0KCiAgICAgIDxpbnB1dAogICAgICAgIHsuLi5wcm9wc30KICAgICAgICBjbGFzc05hbWU9e2NuKAogICAgICAgICAgJ2Jsb2NrIHctZnVsbCByb3VuZGVkLW1kIGJvcmRlci0wIHB5LTEuNSB0ZXh0LWdyYXktOTAwIHJpbmctMSByaW5nLWluc2V0IHJpbmctZ3JheS0zMDAgcGxhY2Vob2xkZXI6dGV4dC1ncmF5LTQwMCBmb2N1czpyaW5nLTIgZm9jdXM6cmluZy1pbmRpZ28tNjAwIHNtOnRleHQtc20gc206bGVhZGluZy02IGRhcms6YmctZ3JheS04MDAgZGFyazpib3JkZXItZ3JheS03MDAgZGFyazp0ZXh0LXdoaXRlIGRhcms6cGxhY2Vob2xkZXI6dGV4dC1ncmF5LTUwMCBkYXJrOnJpbmctZ3JheS03MDAnLAogICAgICAgICAgZXJyb3IgJiYgJ3JpbmctcmVkLTMwMCBkYXJrOnJpbmctcmVkLTUwMCcKICAgICAgICApfQogICAgICAvPgoKICAgICAge2Vycm9yICYmICgKICAgICAgICA8cCBjbGFzc05hbWU9InRleHQtc20gdGV4dC1yZWQtNjAwIGRhcms6dGV4dC1yZWQtNDAwIj57ZXJyb3J9PC9wPgogICAgICApfQoKICAgICAge2hpbnQgJiYgIWVycm9yICYmICgKICAgICAgICA8cCBjbGFzc05hbWU9InRleHQtc20gdGV4dC1ncmF5LTUwMCBkYXJrOnRleHQtZ3JheS00MDAiPntIaW50fTwvcD4KICAgICAgKX0KICAgIDwvZGl2PgogICkKfQoKSW5wdXQuZGlzcGxheU5hbWUgPSAnSW5wdXQn
+import { FC } from 'react'
+import { cn } from '@/app/lib/utils'
+
+type InputProps = {
+  label?: string
+  error?: string
+  hint?: string
+  className?: string
+} & React.InputHTMLAttributes<HTMLInputElement>
+
+export const Input: FC<InputProps> = ({
+  label,
+  error,
+  hint,
+  className,
+  ...props
+}) => {
+  return (
+    <div className={cn('space-y-2', className)}>
+      {label && (
+        <label htmlFor={props.id} className="block text-sm font-medium text-gray-900 dark:text-white">
+          {label}
+        </label>
+      )}
+
+      <input
+        {...props}
+        className={cn(
+          'block w-full rounded-md border-0 py-1.5 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-indigo-600 sm:text-sm sm:leading-6 dark:bg-gray-800 dark:border-gray-700 dark:text-white dark:placeholder:text-gray-500 dark:ring-gray-700',
+          error && 'ring-red-300 dark:ring-red-500'
+        )}
+      />
+
+      {error && (
+        <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+      )}
+
+      {hint && !error && (
+        <p className="text-sm text-gray-500 dark:text-gray-400">{hint}</p>
+      )}
+    </div>
+  )
+}
+
+Input.displayName = 'Input'
