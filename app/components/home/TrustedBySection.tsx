@@ -1,3 +1,1 @@
-import { type ReactNode } from 'react'
-
-// Rest of the file content remains unchanged
+aW1wb3J0IHsgdHlwZSBSZWFjdE5vZGUgfSBmcm9tICdyZWFjdCcKCmV4cG9ydCBkZWZhdWx0IGZ1bmN0aW9uIFRydXN0ZWRCeVNlY3Rpb24oKSB7CiAgcmV0dXJuICgKICAgIDxzZWN0aW9uIGNsYXNzTmFtZT0iYmctd2hpdGUgcHktMjQiPgogICAgICB7LyogQ29tcG9uZW50IGNvbnRlbnQgKi99CiAgICA8L3NlY3Rpb24+CiAgKQp9
