@@ -1,1 +1,23 @@
-aW1wb3J0IHsgdXNlRWZmZWN0LCB1c2VTdGF0ZSB9IGZyb20gJ3JlYWN0JwoKZXhwb3J0IGZ1bmN0aW9uIHVzZURlYm91bmNlPFQ+KHZhbHVlOiBULCBkZWxheTogbnVtYmVyKTogVCB7CiAgY29uc3QgW2RlYm91bmNlZFZhbHVlLCBzZXREZWJvdW5jZWRWYWx1ZV0gPSB1c2VTdGF0ZTxUPih2YWx1ZSkKCiAgdXNlRWZmZWN0KCgpID0+IHsKICAgIGNvbnN0IGhhbmRsZXIgPSBzZXRUaW1lb3V0KCgpID0+IHsKICAgICAgc2V0RGVib3VuY2VkVmFsdWUodmFsdWUpCiAgICB9LCBkZWxheSkKCiAgICByZXR1cm4gKCkgPT4gewogICAgICBjbGVhclRpbWVvdXQoaGFuZGxlcikKICAgIH0KICB9LCBbdmFsdWUsIGRlbGF5XSkKCiAgcmV0dXJuIGRlYm91bmNlZFZhbHVlCn0K
+import { useCallback, useRef } from 'react'
+
+type Timer = ReturnType<typeof setTimeout>
+
+export function useDebounce<T extends (...args: any[]) => void>(
+  callback: T,
+  delay: number
+): T {
+  const timerRef = useRef<Timer>()
+
+  return useCallback(
+    (...args: Parameters<T>) => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current)
+      }
+
+      timerRef.current = setTimeout(() => {
+        callback(...args)
+      }, delay)
+    },
+    [callback, delay]
+  ) as T
+}
