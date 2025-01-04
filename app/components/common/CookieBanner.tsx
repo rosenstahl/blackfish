@@ -1,1 +1,119 @@
-aW1wb3J0IHsgdXNlU3RhdGUsIHVzZUVmZmVjdCB9IGZyb20gJ3JlYWN0JwppbXBvcnQgeyBtb3Rpb24sIEFuaW1hdGVQcmVzZW5jZSB9IGZyb20gJ2ZyYW1lci1tb3Rpb24nCmltcG9ydCB7IFNldHRpbmdzLCBTaGllbGQsIEJhckNoYXJ0IH0gZnJvbSAnbHVjaWRlLXJlYWN0JwppbXBvcnQgeyB1c2VDb29raWVDb25zZW50LCB0eXBlIENvbnNlbnRUeXBlIH0gZnJvbSAnQC9hcHAvY29udGV4dC9Db29raWVDb25zZW50Q29udGV4dCcKaW1wb3J0IHsgQW5hbHl0aWNzIH0gZnJvbSAnQC9hcHAvbGliL2FuYWx5dGljcycKaW1wb3J0IHsgY24gfSBmcm9tICdAL2FwcC9saWIvdXRpbHMnCmltcG9ydCB0eXBlIHsgRm9yd2FyZFJlZkV4b3RpY0NvbXBvbmVudCB9IGZyb20gJ3JlYWN0JwoKdHlwZSBDb29raWVHcm91cCA9IHsKICBpZDoga2V5b2YgQ29uc2VudFR5cGUKICBpY29uOiBGb3J3YXJkUmVmRXhvdGljQ29tcG9uZW50PGFueT4KICB0aXRsZTogc3RyaW5nCiAgZGVzY3JpcHRpb246IHN0cmluZwogIGNvbG9yOiBzdHJpbmcKICBiZ0NvbG9yOiBzdHJpbmcKICBpc1JlcXVpcmVkOiBib29sZWFuCn0KCmNvbnN0IGNvb2tpZUdyb3VwczogQ29va2llR3JvdXBbXSA9IFsKICB7CiAgICBpZDogJ25lY2Vzc2FyeScsCiAgICBpY29uOiBTaGllbGQsCiAgICB0aXRsZTogJ05vdHdlbmRpZycsCiAgICBkZXNjcmlwdGlvbjogJ0RpZXNlIENvb2tpZXMgc2luZCBmw7xyIGRpZSBHcnVuZGZ1bmt0aW9uZW4gZGVyIFdlYnNpdGUgZXJmb3JkZXJsaWNoLicsCiAgICBjb2xvcjogJ3RleHQtZ3JlZW4tNDAwJywKICAgIGJnQ29sb3I6ICdiZy1ncmVlbi01MDAvMjAnLAogICAgaXNSZXF1aXJlZDogdHJ1ZQogIH0sCiAgewogICAgaWQ6ICdmdW5jdGlvbmFsJywKICAgIGljb246IFNldHRpbmdzLAogICAgdGl0bGU6ICdGdW5rdGlvbmFsJywKICAgIGRlc2NyaXB0aW9uOiAnRXJtw7ZnbGljaGVuIGVpbmUgYmVzc2VyZSBOdXR6ZXJlcmZhaHJ1bmcgdW5kIEZ1bmt0aW9uYWxpdMOkdC4nLAogICAgY29sb3I6ICd0ZXh0LXB1cnBsZS00MDAnLAogICAgYmdDb2xvcjogJ2JnLXB1cnBsZS01MDAvMjAnLAogICAgaXNSZXF1aXJlZDogZmFsc2UKICB9LAogIHsKICAgIGlkOiAnYW5hbHl0aWNzJywKICAgIGljb246IEJhckNoYXJ0LAogICAgdGl0bGU6ICdBbmFseXRpY3MnLAogICAgZGVzY3JpcHRpb246ICdIZWxmZW4gdW5zIHp1IHZlcnN0ZWhlbiwgd2llIEJlc3VjaGVyIG1pdCBkZXIgV2Vic2l0ZSBpbnRlcmFnaWVyZW4uJywKICAgIGNvbG9yOiAndGV4dC1ibHVlLTQwMCcsCiAgICBiZ0NvbG9yOiAnYmctYmx1ZS01MDAvMjAnLAogICAgaXNSZXF1aXJlZDogZmFsc2UKICB9Cl0KCmV4cG9ydCBkZWZhdWx0IGZ1bmN0aW9uIENvb2tpZUJhbm5lcigpIHsKICBjb25zdCB7IGNvbnNlbnQsIHVwZGF0ZUNvbnNlbnQsIHNhdmVDb25zZW50IH0gPSB1c2VDb29raWVDb25zZW50KCkKICBjb25zdCBbc2hvd0RldGFpbHMsIHNldFNob3dEZXRhaWxzXSA9IHVzZVN0YXRlKGZhbHNlKQoKICB1c2VFZmZlY3QoKCkgPT4gewogICAgaWYgKHNob3dEZXRhaWxzICE9PSB1bmRlZmluZWQpIHsKICAgICAgQW5hbHl0aWNzLmV2ZW50KHsKICAgICAgICBhY3Rpb246IHNob3dEZXRhaWxzID8gJ2Nvb2tpZV9kZXRhaWxzX3Nob3cnIDogJ2Nvb2tpZV9kZXRhaWxzX2hpZGUnLAogICAgICAgIGNhdGVnb3J5OiAnQ29va2llIENvbnNlbnQnLAogICAgICAgIGxhYmVsOiAnQ29va2llIEJhbm5lciBJbnRlcmFjdGlvbicKICAgICAgfSkKICAgIH0KICB9LCBbc2hvd0RldGFpbHNdKQoKICBjb25zdCBoYW5kbGVBY2NlcHRBbGwgPSAoKSA9PiB7CiAgICBjb29raWVHcm91cHMuZm9yRWFjaChncm91cCA9PiB7CiAgICAgIHVwZGF0ZUNvbnNlbnQoZ3JvdXAuaWQsIHRydWUpCiAgICB9KQogICAgc2F2ZUNvbnNlbnQoKQoKICAgIEFuYWx5dGljcy5ldmVudCh7CiAgICAgIGFjdGlvbjogJ2Nvb2tpZV9hY2NlcHRfYWxsJywKICAgICAgY2F0ZWdvcnk6ICdDb29raWUgQ29uc2VudCcsCiAgICAgIGxhYmVsOiAnQWNjZXB0IEFsbCBDb29raWVzJwogICAgfSkKICB9CgogIGNvbnN0IGhhbmRsZUFjY2VwdFNlbGVjdGVkID0gKCkgPT4gewogICAgc2F2ZUNvbnNlbnQoKQoKICAgIEFuYWx5dGljcy5ldmVudCh7CiAgICAgIGFjdGlvbjogJ2Nvb2tpZV9hY2NlcHRfc2VsZWN0ZWQnLAogICAgICBjYXRlZ29yeTogJ0Nvb2tpZSBDb25zZW50JywKICAgICAgbGFiZWw6ICdBY2NlcHQgU2VsZWN0ZWQgQ29va2llcycKICAgIH0pCiAgfQoKICBjb25zdCBoYW5kbGVUb2dnbGVDb29raWUgPSAoZ3JvdXBJZDoga2V5b2YgQ29uc2VudFR5cGUpID0+IHsKICAgIGlmICghY29uc2VudCkgcmV0dXJuCiAgICB1cGRhdGVDb25zZW50KGdyb3VwSWQsICFjb25zZW50W2dyb3VwSWRdKQogIH0KCiAgaWYgKCFjb25zZW50KSByZXR1cm4gbnVsbAoKICByZXR1cm4gKAogICAgPEFuaW1hdGVQcmVzZW5jZT4KICAgICAgPGRpdgogICAgICAgIGNsYXNzTmFtZT0iZml4ZWQgaW5zZXQteC0wIGJvdHRvbS0wIHotNTAgcGItc2FmZS1hcmVhLWluc2V0LWJvdHRvbSIKICAgICAgICByb2xlPSJkaWFsb2ciCiAgICAgICAgYXJpYS1sYWJlbGxlZGJ5PSJjb29raWUtYmFubmVyLXRpdGxlIgogICAgICA+CiAgICAgICAgPG1vdGlvbi5kaXYKICAgICAgICAgIGluaXRpYWw9e3sgeTogJzEwMCUnIH19CiAgICAgICAgICBhbmltYXRlPXt7IHk6IDAgfX0KICAgICAgICAgIGV4aXQ9e3sgeTogJzEwMCUnIH19CiAgICAgICAgICB0cmFuc2l0aW9uPXt7IHR5cGU6ICdzcHJpbmcnLCBkYW1waW5nOiAzMCwgc3RpZmZuZXNzOiAzMDAgfX0KICAgICAgICAgIGNsYXNzTmFtZT17Y24oCiAgICAgICAgICAgICdiZy1ncmF5LTkwMC85NSBiYWNrZHJvcC1ibHVyIHN1cHBvcnRzLVtiYWNrZHJvcC1maWx0ZXJdOmJnLWdyYXktOTAwLzc1JywKICAgICAgICAgICAgJ2JvcmRlci10IGJvcmRlci1ncmF5LTgwMCcsCiAgICAgICAgICAgICdwLTQgbWQ6cC02JwogICAgICAgICAgKX0KICAgICAgICA+CiAgICAgICAgICB7LyogUmVzdCBvZiB0aGUgY29tcG9uZW50ICovfQogICAgICAgIDwvbW90aW9uLmRpdj4KICAgICAgPC9kaXY+CiAgICA8L0FuaW1hdGVQcmVzZW5jZT4KICApCn0=
+import { useState, useEffect } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Settings, Shield, BarChart, LucideProps } from 'lucide-react'
+import { useCookieConsent, type ConsentType } from '@/app/context/CookieConsentContext'
+import { Analytics } from '@/app/lib/analytics'
+import { cn } from '@/app/lib/utils'
+
+type Icon = React.ComponentType<LucideProps>
+
+type CookieGroup = {
+  id: keyof ConsentType
+  icon: Icon
+  title: string
+  description: string
+  color: string
+  bgColor: string
+  isRequired: boolean
+}
+
+const cookieGroups: CookieGroup[] = [
+  {
+    id: 'necessary',
+    icon: Shield,
+    title: 'Notwendig',
+    description: 'Diese Cookies sind für die Grundfunktionen der Website erforderlich.',
+    color: 'text-green-400',
+    bgColor: 'bg-green-500/20',
+    isRequired: true
+  },
+  {
+    id: 'functional',
+    icon: Settings,
+    title: 'Funktional',
+    description: 'Ermöglichen eine bessere Nutzererfahrung und Funktionalität.',
+    color: 'text-purple-400',
+    bgColor: 'bg-purple-500/20',
+    isRequired: false
+  },
+  {
+    id: 'analytics',
+    icon: BarChart,
+    title: 'Analytics',
+    description: 'Helfen uns zu verstehen, wie Besucher mit der Website interagieren.',
+    color: 'text-blue-400',
+    bgColor: 'bg-blue-500/20',
+    isRequired: false
+  }
+]
+
+export default function CookieBanner() {
+  const { consent, updateConsent, saveConsent } = useCookieConsent()
+  const [showDetails, setShowDetails] = useState(false)
+
+  useEffect(() => {
+    if (showDetails !== undefined) {
+      Analytics.event({
+        action: showDetails ? 'cookie_details_show' : 'cookie_details_hide',
+        category: 'Cookie Consent',
+        label: 'Cookie Banner Interaction'
+      })
+    }
+  }, [showDetails])
+
+  const handleAcceptAll = () => {
+    cookieGroups.forEach(group => {
+      updateConsent(group.id, true)
+    })
+    saveConsent()
+
+    Analytics.event({
+      action: 'cookie_accept_all',
+      category: 'Cookie Consent',
+      label: 'Accept All Cookies'
+    })
+  }
+
+  const handleAcceptSelected = () => {
+    saveConsent()
+
+    Analytics.event({
+      action: 'cookie_accept_selected',
+      category: 'Cookie Consent',
+      label: 'Accept Selected Cookies'
+    })
+  }
+
+  const handleToggleCookie = (groupId: keyof ConsentType) => {
+    if (!consent) return
+    updateConsent(groupId, !consent[groupId])
+  }
+
+  if (!consent) return null
+
+  return (
+    <AnimatePresence>
+      <div
+        className="fixed inset-x-0 bottom-0 z-50 pb-safe-area-inset-bottom"
+        role="dialog"
+        aria-labelledby="cookie-banner-title"
+      >
+        <motion.div
+          initial={{ y: '100%' }}
+          animate={{ y: 0 }}
+          exit={{ y: '100%' }}
+          transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+          className={cn(
+            'bg-gray-900/95 backdrop-blur supports-[backdrop-filter]:bg-gray-900/75',
+            'border-t border-gray-800',
+            'p-4 md:p-6'
+          )}
+        >
+          <div className="mx-auto max-w-7xl space-y-4">
+            {/* Rest of the component content */}
+          </div>
+        </motion.div>
+      </div>
+    </AnimatePresence>
+  )
+}
