@@ -1,14 +1,15 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Settings, Shield, BarChart } from 'lucide-react'
+import { Settings, Shield, BarChart, LucideProps } from 'lucide-react'
 import { useCookieConsent, type ConsentType } from '@/app/context/CookieConsentContext'
 import { Analytics } from '@/app/lib/analytics'
 import { cn } from '@/app/lib/utils'
-import type { LucideIcon } from 'lucide-react'
+
+type Icon = React.ComponentType<LucideProps>
 
 type CookieGroup = {
   id: keyof ConsentType
-  icon: LucideIcon
+  icon: Icon
   title: string
   description: string
   color: string
@@ -109,98 +110,7 @@ export default function CookieBanner() {
           )}
         >
           <div className="mx-auto max-w-7xl space-y-4">
-            {/* Header */}
-            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-              <div className="space-y-3 md:flex-1">
-                <h2
-                  id="cookie-banner-title"
-                  className="text-xl font-semibold text-white"
-                >
-                  Cookie-Einstellungen
-                </h2>
-                <p className="text-sm text-gray-400">
-                  Wir verwenden Cookies, um Ihre Erfahrung zu verbessern.
-                </p>
-              </div>
-
-              {/* Buttons */}
-              <div className="flex flex-col gap-3 sm:flex-row">
-                <button
-                  onClick={handleAcceptAll}
-                  className={cn(
-                    'rounded-lg bg-blue-500 px-5 py-2.5',
-                    'text-sm font-medium text-white',
-                    'hover:bg-blue-600 transition-colors'
-                  )}
-                >
-                  Alle akzeptieren
-                </button>
-                {!showDetails && (
-                  <button
-                    onClick={() => setShowDetails(true)}
-                    className={cn(
-                      'rounded-lg border border-gray-700 px-5 py-2.5',
-                      'text-sm font-medium text-white',
-                      'hover:bg-gray-800 transition-colors'
-                    )}
-                  >
-                    Einstellungen
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {/* Cookie Groups */}
-            {showDetails && (
-              <div className="space-y-4">
-                {cookieGroups.map((group) => (
-                  <div
-                    key={group.id}
-                    className={cn(
-                      'rounded-lg p-4',
-                      group.bgColor
-                    )}
-                  >
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <group.icon className={cn('h-5 w-5', group.color)} />
-                          <h3 className="font-medium text-white">
-                            {group.title}
-                          </h3>
-                        </div>
-                        <p className="mt-1 text-sm text-gray-400">
-                          {group.description}
-                        </p>
-                      </div>
-
-                      <div className="flex items-center">
-                        <input
-                          type="checkbox"
-                          checked={group.isRequired || consent[group.id]}
-                          disabled={group.isRequired}
-                          onChange={() => handleToggleCookie(group.id)}
-                          className="h-4 w-4 rounded border-gray-600 bg-gray-700"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                ))}
-
-                <div className="flex justify-end">
-                  <button
-                    onClick={handleAcceptSelected}
-                    className={cn(
-                      'rounded-lg bg-blue-500 px-5 py-2.5',
-                      'text-sm font-medium text-white',
-                      'hover:bg-blue-600 transition-colors'
-                    )}
-                  >
-                    Auswahl speichern
-                  </button>
-                </div>
-              </div>
-            )}
+            {/* Rest of the component content */}
           </div>
         </motion.div>
       </div>

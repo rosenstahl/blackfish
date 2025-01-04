@@ -1,60 +1,45 @@
-import { forwardRef } from 'react'
+import { FC, TextareaHTMLAttributes } from 'react'
 import { cn } from '@/app/lib/utils'
-import { formStyles } from '@/app/styles/components'
 
-export interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
+type TextareaProps = {
+  label?: string
   error?: string
   hint?: string
-  label?: string
+  className?: string
+} & TextareaHTMLAttributes<HTMLTextAreaElement>
+
+export const Textarea: FC<TextareaProps> = ({
+  label,
+  error,
+  hint,
+  className,
+  ...props
+}) => {
+  return (
+    <div className={cn('space-y-2', className)}>
+      {label && (
+        <label htmlFor={props.id} className="block text-sm font-medium text-gray-900 dark:text-white">
+          {label}
+        </label>
+      )}
+
+      <textarea
+        {...props}
+        className={cn(
+          'block w-full rounded-md border-0 py-1.5 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-indigo-600 sm:text-sm sm:leading-6 dark:bg-gray-800 dark:border-gray-700 dark:text-white dark:placeholder:text-gray-500 dark:ring-gray-700',
+          error && 'ring-red-300 dark:ring-red-500'
+        )}
+      />
+
+      {error && (
+        <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+      )}
+
+      {hint && !error && (
+        <p className="text-sm text-gray-500 dark:text-gray-400">{hint}</p>
+      )}
+    </div>
+  )
 }
-
-export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
-  ({ className, error, hint, label, id, ...props }, ref) => {
-    const textareaId = id || props.name
-
-    return (
-      <div className="space-y-1">
-        {label && (
-          <label
-            htmlFor={textareaId}
-            className={formStyles.label}
-          >
-            {label}
-          </label>
-        )}
-        <textarea
-          ref={ref}
-          id={textareaId}
-          className={cn(
-            formStyles.textarea,
-            error && 'border-red-300 dark:border-red-700 focus:border-red-500 focus:ring-red-500',
-            className
-          )}
-          aria-invalid={error ? 'true' : undefined}
-          aria-describedby={
-            error ? `${textareaId}-error` : hint ? `${textareaId}-hint` : undefined
-          }
-          {...props}
-        />
-        {error && (
-          <p 
-            id={`${textareaId}-error`}
-            className={formStyles.error}
-          >
-            {error}
-          </p>
-        )}
-        {!error && hint && (
-          <p 
-            id={`${textareaId}-hint`}
-            className={formStyles.hint}
-          >
-            {hint}
-          </p>
-        )}
-      </div>
-    )
-  }
-)
 
 Textarea.displayName = 'Textarea'

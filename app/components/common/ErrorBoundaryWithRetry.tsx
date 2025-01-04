@@ -1,49 +1,32 @@
-import React from 'react'
-import { type ReactNode, createContext, useContext } from 'react'
+'use client'
+
+import { Component, type ReactNode, createContext, useContext } from 'react'
 import { Analytics } from '@/app/lib/analytics'
 
-type Props = {
+interface Props {
   children: ReactNode
-  fallback?: ReactNode
-  onReset?: () => void
 }
 
-type State = {
+interface State {
   hasError: boolean
-  error: Error | null
   retryCount: number
+  error?: Error
 }
 
-type ErrorInfo = {
-  componentStack: string
-  digest?: string
+interface RetryContextType {
+  retry: () => void
 }
 
-type RetryContextType = {
-  reset: () => void
-}
+const RetryContext = createContext<RetryContextType>({ retry: () => {} })
 
-const RetryContext = createContext<RetryContextType | null>(null)
-
-export function useRetry(): RetryContextType {
-  const context = useContext(RetryContext)
-  if (!context) {
-    throw new Error('useRetry must be used within an ErrorBoundaryWithRetry')
-  }
-  return context
-}
-
-export class ErrorBoundaryWithRetry extends React.Component<Props, State> {
+export class ErrorBoundaryWithRetry extends Component<Props, State> {
   constructor(props: Props) {
     super(props)
-    this.state = {
-      hasError: false,
-      error: null,
-      retryCount: 0
-    }
+    this.state = { hasError: false, retryCount: 0 }
+    this.retry = this.retry.bind(this)
   }
 
-  public static getDerivedStateFromError(error: Error): State {
+  static getDerivedStateFromError(error: Error): State {
     return {
       hasError: true,
       error,
@@ -51,25 +34,18 @@ export class ErrorBoundaryWithRetry extends React.Component<Props, State> {
     }
   }
 
-  public override componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
-    // Log error zu Analytics
-    Analytics.event({
-      action: 'error_boundary_caught',
-      category: 'Error',
-      label: error.message
-    })
-
-    console.error('Error caught by ErrorBoundary:', {
-      error,
-      errorInfo,
-      retryCount: this.state.retryCount
-    })
+  componentDidCatch(error: Error): void {
+    if (process.env.NODE_ENV === 'production') {
+      Analytics.error('error_boundary_catch', {
+        error: error.message,
+        stack: error.stack
+      })
+    }
   }
 
-  private reset = (): void => {
+  retry(): void {
     const newRetryCount = this.state.retryCount + 1
     
-    // Log retry zu Analytics
     Analytics.event({
       action: 'error_boundary_retry',
       category: 'Error',
@@ -79,56 +55,38 @@ export class ErrorBoundaryWithRetry extends React.Component<Props, State> {
 
     this.setState({
       hasError: false,
-      error: null,
       retryCount: newRetryCount
     })
-
-    this.props.onReset?.()
   }
 
-  public override render(): ReactNode {
-    const { children, fallback } = this.props
-    const { hasError, error, retryCount } = this.state
-
-    const retry = {
-      reset: this.reset,
-      error,
-      retryCount
-    }
-
-    if (hasError) {
-      if (fallback) {
-        return fallback
-      }
-
+  render(): ReactNode {
+    if (this.state.hasError) {
       return (
-        <div className="flex min-h-screen flex-col items-center justify-center p-4 text-center">
-          <div className="max-w-md space-y-4">
-            <h1 className="text-2xl font-bold text-white">
-              Etwas ist schiefgelaufen
-            </h1>
-            
-            <p className="text-gray-400">
-              Ein Fehler ist aufgetreten. Bitte versuchen Sie es erneut.
+        <div className="flex h-screen items-center justify-center">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold">Oops! Something went wrong.</h1>
+            <p className="mt-2 text-gray-600">
+              Please try again or contact support if the problem persists.
             </p>
-
-            {retryCount < 3 && (
-              <button
-                onClick={this.reset}
-                className="rounded bg-blue-500 px-4 py-2 text-white hover:bg-blue-600"
-              >
-                Erneut versuchen
-              </button>
-            )}
+            <button
+              onClick={this.retry}
+              className="mt-4 rounded-md bg-blue-500 px-4 py-2 text-white hover:bg-blue-600"
+            >
+              Try Again
+            </button>
           </div>
         </div>
       )
     }
 
     return (
-      <RetryContext.Provider value={retry}>
-        {children}
+      <RetryContext.Provider value={{ retry: this.retry }}>
+        {this.props.children}
       </RetryContext.Provider>
     )
   }
+}
+
+export function useRetry(): RetryContextType {
+  return useContext(RetryContext)
 }

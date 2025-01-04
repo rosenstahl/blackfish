@@ -1,47 +1,32 @@
-// app/context/LoadingContext.tsx
 'use client'
 
-import { createContext, useContext, useState } from 'react'
+import { createContext, useContext, useState, type ReactNode, type FC } from 'react'
 import PageLoadingIndicator from '@/app/components/common/PageLoadingIndicator'
 
-type LoadingContextType = {
-  startLoading: () => void;
-  stopLoading: () => void;
-  isLoading: boolean;
+interface LoadingContextType {
+  loading: boolean
+  setLoading: (loading: boolean) => void
 }
 
-const LoadingContext = createContext<LoadingContextType | undefined>(undefined)
+const LoadingContext = createContext<LoadingContextType>({
+  loading: false,
+  setLoading: () => {}
+})
 
-export function LoadingProvider({ children }: { children: React.ReactNode }) {
-  const [isLoading, setIsLoading] = useState(false)
-  const [loadingTimer, setLoadingTimer] = useState<NodeJS.Timeout | null>(null)
+interface Props {
+  children: ReactNode
+  initialLoading?: boolean
+}
 
-  const startLoading = () => {
-    // Minimale Ladezeit von 500ms um Flackern zu vermeiden
-    setIsLoading(true)
-    if (loadingTimer) clearTimeout(loadingTimer)
-  }
-
-  const stopLoading = () => {
-    // Verzögerung um abrupte Übergänge zu vermeiden
-    const timer = setTimeout(() => {
-      setIsLoading(false)
-    }, 500)
-    setLoadingTimer(timer)
-  }
+export const LoadingProvider: FC<Props> = ({ children, initialLoading = false }) => {
+  const [loading, setLoading] = useState(initialLoading)
 
   return (
-    <LoadingContext.Provider value={{ startLoading, stopLoading, isLoading }}>
+    <LoadingContext.Provider value={{ loading, setLoading }}>
       {children}
-      {isLoading && <PageLoadingIndicator />}
+      {loading && <PageLoadingIndicator />}
     </LoadingContext.Provider>
   )
 }
 
-export function useLoading() {
-  const context = useContext(LoadingContext)
-  if (context === undefined) {
-    throw new Error('useLoading must be used within a LoadingProvider')
-  }
-  return context
-}
+export const useLoading = () => useContext(LoadingContext)

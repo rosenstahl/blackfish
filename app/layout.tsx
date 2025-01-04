@@ -8,6 +8,7 @@ import Footer from "@/app/components/layout/Footer";
 import CookieBanner from "@/app/components/common/CookieBanner";
 import GlobalErrorBoundary from "./components/common/GlobalErrorBoundary";
 import SkipLink from "@/app/components/common/SkipLink";
+import { Analytics } from "@/app/components/analytics/Analytics";
 
 // Providers
 import { CookieConsentProvider } from "@/app/context/CookieConsentContext";
@@ -63,6 +64,7 @@ export default function RootLayout({
           <GlobalErrorBoundary>
             <CookieConsentProvider>
               <LoadingProvider>
+                <Analytics />
                 <SkipLink />
                 <div className="relative flex min-h-screen flex-col">
                   <Header />
