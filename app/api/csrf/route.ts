@@ -1,78 +1,39 @@
-import { NextRequest, NextResponse } from 'next/server';
-import crypto from 'crypto';
+import { NextResponse } from 'next/server'
+import { cookies } from 'next/headers'
+import crypto from 'crypto'
 
-// Sicheres Fallback für den Fall, dass keine ENV-Variable gesetzt ist
-const CSRF_SECRET = process.env['CSRF_SECRET'] || crypto.randomBytes(32).toString('hex');
-const CSRF_TOKEN_EXPIRY = 24 * 60 * 60 * 1000; // 24 Stunden
+const CSRF_TOKEN_COOKIE = 'csrf-token'
+const CSRF_SECRET = process.env.CSRF_SECRET || 'your-default-csrf-secret'
 
-export async function GET(req: NextRequest) {
-  try {
-    // Direkte Header-Verarbeitung ohne await
-    const headers = req.headers;
-    const forwardedFor = headers.get('x-forwarded-for') || req.ip;
-    const userAgent = headers.get('user-agent') || 'unknown';
-
-    // Erstelle einen sicheren Token
-    const timestamp = Date.now();
-    const randomBytes = crypto.randomBytes(32).toString('hex');
-    const data = `${randomBytes}|${timestamp}|${forwardedFor}|${userAgent}`;
-    
-    // Signiere den Token
-    const hmac = crypto.createHmac('sha256', CSRF_SECRET);
-    hmac.update(data);
-    const signature = hmac.digest('hex');
-    
-    // Kombiniere zu finalem Token
-    const token = Buffer.from(`${data}|${signature}`).toString('base64');
-
-    // Setze sichere Response-Header
-    return new NextResponse(token, {
-      status: 200,
-      headers: {
-        'Content-Type': 'text/plain',
-        'Cache-Control': 'no-store, private, must-revalidate, max-age=0',
-        'Pragma': 'no-cache',
-      },
-    });
-
-  } catch (error) {
-    console.error('CSRF token generation error:', error);
-    return new NextResponse('Internal Server Error', { status: 500 });
-  }
+function getClientIP(forwardedFor: string | null): string {
+  if (!forwardedFor) return '127.0.0.1'
+  return forwardedFor.split(',')[0].trim()
 }
 
-export async function verifyToken(token: string, req: NextRequest): Promise<boolean> {
-  try {
-    const decodedToken = Buffer.from(token, 'base64').toString();
-    const [randomBytes, timestamp, storedForwardedFor, storedUserAgent, signature] = decodedToken.split('|');
+function generateToken(data: string, secret: string): string {
+  return crypto
+    .createHmac('sha256', secret)
+    .update(data)
+    .digest('hex')
+}
 
-    // Überprüfe Timestamp
-    const tokenAge = Date.now() - parseInt(timestamp, 10);
-    if (tokenAge > CSRF_TOKEN_EXPIRY) {
-      return false;
-    }
+export async function POST(req: Request) {
+  const cookieStore = cookies()
+  const clientIP = getClientIP(req.headers.get('x-forwarded-for'))
+  const userAgent = req.headers.get('user-agent') || 'unknown'
 
-    // Überprüfe Client-Informationen
-    const currentForwardedFor = req.headers.get('x-forwarded-for') || req.ip;
-    const currentUserAgent = req.headers.get('user-agent') || 'unknown';
+  const signature = generateToken(`${clientIP}:${userAgent}`, CSRF_SECRET)
+  const token = crypto.randomBytes(32).toString('hex')
 
-    if (storedForwardedFor !== currentForwardedFor || storedUserAgent !== currentUserAgent) {
-      return false;
-    }
+  cookieStore.set(CSRF_TOKEN_COOKIE, token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
+    path: '/'
+  })
 
-    // Überprüfe Signatur
-    const data = `${randomBytes}|${timestamp}|${storedForwardedFor}|${storedUserAgent}`;
-    const hmac = crypto.createHmac('sha256', CSRF_SECRET);
-    hmac.update(data);
-    const expectedSignature = hmac.digest('hex');
-
-    return crypto.timingSafeEqual(
-      Buffer.from(signature),
-      Buffer.from(expectedSignature)
-    );
-
-  } catch (error) {
-    console.error('CSRF token verification error:', error);
-    return false;
-  }
+  return NextResponse.json({
+    token,
+    signature: Buffer.from(signature).toString('hex')
+  })
 }
